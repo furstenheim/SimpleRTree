@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"container/heap"
+	"fmt"
 )
 
 const (
@@ -64,12 +65,12 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
-	sq := make(searchQueue, r.rootNode.height * r.options.MAX_ENTRIES)
+	sq := make(searchQueue, 0, r.rootNode.height * r.options.MAX_ENTRIES)
 	heap.Init(&sq)
 
 	mind, maxd := r.rootNode.computeDistances(x, y)
 	distanceUpperBound := maxd
-	heap.Push(&sq, searchQueueItem{node: r.rootNode, distance: mind})
+	heap.Push(&sq, &searchQueueItem{node: r.rootNode, distance: mind})
 
 	for sq.Len() > 0 {
 		item := heap.Pop(&sq).(*searchQueueItem)
@@ -86,7 +87,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
 			for _, n := range(item.node.children) {
 				mind, maxd := n.computeDistances(x, y)
 				if (mind < distanceUpperBound) {
-					heap.Push(&sq, searchQueueItem{node: n, distance: mind})
+					heap.Push(&sq, &searchQueueItem{node: n, distance: mind})
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -98,6 +99,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
 	}
 	x1 = minItem.node.BBox.MaxX
 	y1 = minItem.node.BBox.MaxY
+	fmt.Println(mind)
 	return
 }
 
@@ -115,9 +117,9 @@ func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
 }
 
 func (r *SimpleRTree) build(points Interface, isSorted bool) *Node {
-
 	confirmCh := make(chan int, 1)
 
+	r.points = points
 	rootNode := &Node{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
 		start: 0,
@@ -131,6 +133,7 @@ func (r *SimpleRTree) build(points Interface, isSorted bool) *Node {
 		remainingNodes += i
 	}
 	close(confirmCh)
+
 	rootNode.computeBBoxDownwards()
 	return rootNode
 }
@@ -159,10 +162,10 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, confirmCh chan int, isCalledAs
 
 	// parent node might already be sorted. In that case we avoid double computation
 	if (n.parentNode != nil || !isSorted) {
+		println(r.points)
 		sortX := xSorter{n: n, points: r.points, start: n.start, end: n.end, bucketSize:  N1}
 		sortX.Sort()
 	}
-	// runtime.Breakpoint()
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
 		sortY := ySorter{n: n, points: r.points, start: i, end: right2, bucketSize: N2}
