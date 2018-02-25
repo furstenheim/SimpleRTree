@@ -1,6 +1,8 @@
 package SimpleRTree
 
-import "math"
+import (
+	"math"
+)
 
 type BBox struct {
 	MinX, MinY, MaxX, MaxY float64

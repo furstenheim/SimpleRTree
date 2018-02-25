@@ -4,7 +4,6 @@ import (
 	"log"
 	"math"
 	"container/heap"
-	"fmt"
 )
 
 const (
@@ -99,7 +98,6 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
 	}
 	x1 = minItem.node.BBox.MaxX
 	y1 = minItem.node.BBox.MaxY
-	fmt.Println(mind)
 	return
 }
 
@@ -168,7 +166,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, confirmCh chan int, isCalledAs
 	}
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
-		sortY := ySorter{n: n, points: r.points, start: i, end: right2, bucketSize: N2}
+		sortY := ySorter{n: n, points: r.points, start: n.start + i, end: n.start + right2, bucketSize: N2}
 		sortY.Sort()
 		for j := i; j < right2; j += N2 {
 			right3 := minInt(j+N2, right2)
@@ -222,10 +220,10 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 	n.height = 1
 
 	for i := 0; i < n.end - n.start; i++ {
-		x1, y1 := r.points.GetPointAt(i)
+		x1, y1 := r.points.GetPointAt(n.start + i)
 		children[i] = &Node{
-			start: i,
-			end: i +1,
+			start: n.start + i,
+			end: n.start + i +1,
 			isLeaf: true,
 			BBox: BBox{
 				MinX: x1,
@@ -255,6 +253,13 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	}
 	mind, maxd = minmaxFloatArray(distances)
 
+	// Min distance is vertical line
+	if (n.BBox.MinX <= x && x <= n.BBox.MaxX) {
+		mind = math.Min(math.Pow(n.BBox.MaxY - y, 2), math.Pow(n.BBox.MinY - y, 2))
+	}
+	if (n.BBox.MinY <= y && y <= n.BBox.MaxY) {
+		mind = math.Min(math.Pow(n.BBox.MaxX - x, 2), math.Pow(n.BBox.MinX - x, 2))
+	}
 	if (n.BBox.containsPoint(x, y)) {
 		mind = 0
 	}
