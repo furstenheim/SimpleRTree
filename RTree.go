@@ -3,6 +3,7 @@ package SimpleRTree
 import (
 	"log"
 	"math"
+	"container/heap"
 )
 
 const (
@@ -57,6 +58,47 @@ func (r *SimpleRTree) Load(points Interface) *SimpleRTree {
 
 func (r *SimpleRTree) LoadSortedArray(points Interface) *SimpleRTree {
 	return r.load(points, true)
+}
+
+func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
+	var minItem *searchQueueItem
+	distanceLowerBound := math.Inf(1)
+	// if bbox is further from this bound then we don't explore it
+	sq := make(searchQueue, r.rootNode.height * r.options.MAX_ENTRIES)
+	heap.Init(&sq)
+
+	mind, maxd := r.rootNode.computeDistances(x, y)
+	distanceUpperBound := maxd
+	heap.Push(&sq, searchQueueItem{node: r.rootNode, distance: mind})
+
+	for sq.Len() > 0 {
+		item := heap.Pop(&sq).(*searchQueueItem)
+		currentDistance := item.distance
+		if (minItem != nil && currentDistance > distanceLowerBound) {
+			break
+		}
+
+		if (item.node.isLeaf) {
+			// we know it is smaller from the previous test
+			distanceLowerBound = currentDistance
+			minItem = item
+		} else {
+			for _, n := range(item.node.children) {
+				mind, maxd := n.computeDistances(x, y)
+				if (mind < distanceUpperBound) {
+					heap.Push(&sq, searchQueueItem{node: n, distance: mind})
+				}
+				// Distance to one of the corners is lower than the upper bound
+				// so there must be a point at most within distanceUpperBound
+				if (maxd < distanceUpperBound) {
+					distanceUpperBound = maxd
+				}
+			}
+		}
+	}
+	x1 = minItem.node.BBox.MaxX
+	y1 = minItem.node.BBox.MaxY
+	return
 }
 
 func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
@@ -157,16 +199,7 @@ func (n *Node) computeBBoxDownwards() BBox {
 
 	var bbox BBox
 	if n.isLeaf {
-		bbox = BBox{
-			MinX: math.Inf(+1),
-			MaxX: math.Inf(-1),
-			MinY: math.Inf(+1),
-			MaxY: math.Inf(-1),
-		}
-		// This bounded boxes are computed when creating the nodes, they only contain one point so there is no doubt
-		for i := 0; i < len(n.children); i++ {
-			bbox = bbox.extend(n.children[i].BBox)
-		}
+		bbox = n.BBox
 	} else {
 		bbox = n.children[0].computeBBoxDownwards()
 
@@ -181,17 +214,16 @@ func (n *Node) computeBBoxDownwards() BBox {
 
 func (r *SimpleRTree) setLeafNode(n * Node) {
 	// Here we follow original rbush implementation.
-// 	children := make([]*Node, n.end - n.start)
-// 	n.children = children
+ 	children := make([]*Node, n.end - n.start)
+ 	n.children = children
 	n.height = 1
-	// TODO calll isLeaf to proper leaves
-	n.isLeaf = true
-/*
+
 	for i := 0; i < n.end - n.start; i++ {
 		x1, y1 := r.points.GetPointAt(i)
 		children[i] = &Node{
 			start: i,
 			end: i +1,
+			isLeaf: true,
 			BBox: BBox{
 				MinX: x1,
 				MaxX: x1,
@@ -200,13 +232,50 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 			},
 			parentNode: n,
 		}
-	}*/
+	}
 }
 
+func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
+	// TODO try reuse array
+	// TODO try simd
+	if (n.isLeaf) {
+		// node is point, there is only one distance
+		d := math.Pow(x - n.BBox.MinX, 2)  + math.Pow(y - n.BBox.MinY, 2)
+		return d, d
+	}
+
+	distances := [4]float64{
+		math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MinY, 2),
+		math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MaxY, 2),
+		math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MinY, 2),
+		math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MaxY, 2),
+	}
+	mind, maxd = minmaxFloatArray(distances)
+
+	if (n.BBox.containsPoint(x, y)) {
+		mind = 0
+	}
+	return
+}
 
 func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
+}
+
+func minmaxFloatArray (s [4]float64) (min, max float64) {
+	// TODO try min of four
+	min = s[0]
+	max = s[0]
+	for _, e := range s {
+		if e < min {
+			min = e
+		}
+		if e > min {
+			max = e
+		}
+	}
+	return min, max
 }

@@ -40,6 +40,15 @@ func (b1 BBox) contains(b2 BBox) bool {
 		b2.MaxY <= b1.MaxY
 }
 
+func (b1 BBox) containsPoint (x, y float64) bool {
+	return b1.MinX <= x &&
+		x <= b1.MaxX &&
+		b1.MinY <= y &&
+		y <= b1.MaxY
+}
+
+
+
 func (b1 BBox) intersects(b2 BBox) bool {
 	return b2.MinX <= b1.MaxX &&
 		b2.MinY <= b1.MaxY &&
