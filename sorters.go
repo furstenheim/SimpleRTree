@@ -9,13 +9,13 @@ type xSorter struct {
 }
 
 func (s xSorter) Less(i, j int) bool {
-	x1, _ := s.points.GetPointAt(i + s.start + s.n.start)
-	x2, _ := s.points.GetPointAt(j + s.start + s.n.start)
+	x1, _ := s.points.GetPointAt(i + s.start)
+	x2, _ := s.points.GetPointAt(j + s.start)
 	return x1 < x2
 }
 
 func (s xSorter) Swap(i, j int) {
-	s.points.Swap(i+s.start + s.n.start, j+s.start + s.n.start)
+	s.points.Swap(i+s.start, j+s.start)
 }
 
 func (s xSorter) Len() int {
@@ -33,13 +33,13 @@ type ySorter struct {
 }
 
 func (s ySorter) Less(i, j int) bool {
-	_, y1 := s.points.GetPointAt(i + s.start + s.n.start)
-	_, y2 := s.points.GetPointAt(j + s.start + s.n.start)
+	_, y1 := s.points.GetPointAt(i + s.start)
+	_, y2 := s.points.GetPointAt(j + s.start)
 	return y1 < y2
 }
 
 func (s ySorter) Swap(i, j int) {
-	s.points.Swap(i+s.start + s.n.start, j+s.start + s.n.start)
+	s.points.Swap(i+s.start, j+s.start)
 }
 
 func (s ySorter) Len() int {

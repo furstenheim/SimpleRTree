@@ -6,10 +6,6 @@ import (
 	"container/heap"
 )
 
-const (
-	MAX_HEIGHT_TO_SPLIT = 3 // When creating the index we'll split the task into a new goroutine until we reach this height
-)
-
 
 type Interface interface {
 	GetPointAt(i int) (x1, y1 float64)        // Retrieve point at position i
@@ -115,7 +111,6 @@ func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
 }
 
 func (r *SimpleRTree) build(points Interface, isSorted bool) *Node {
-	confirmCh := make(chan int, 1)
 
 	r.points = points
 	rootNode := &Node{
@@ -123,28 +118,15 @@ func (r *SimpleRTree) build(points Interface, isSorted bool) *Node {
 		start: 0,
 		end: points.Len(),
 	}
-	remainingNodes := 1
 
-	go r.buildNodeDownwards(rootNode, confirmCh, true, isSorted)
-	for remainingNodes > 0 {
-		i := <-confirmCh
-		remainingNodes += i
-	}
-	close(confirmCh)
-
+	r.buildNodeDownwards(rootNode, true, isSorted)
 	rootNode.computeBBoxDownwards()
 	return rootNode
 }
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(n *Node, confirmCh chan int, isCalledAsync, isSorted bool) {
-	if isCalledAsync {
-		defer func() {
-			confirmCh <- -1
-		}()
-	}
-
+func (r *SimpleRTree) buildNodeDownwards(n *Node, isCalledAsync, isSorted bool) {
 	N := n.end - n.start
 	// target number of root entries to maximize storage utilization
 	var M float64
@@ -160,7 +142,6 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, confirmCh chan int, isCalledAs
 
 	// parent node might already be sorted. In that case we avoid double computation
 	if (n.parentNode != nil || !isSorted) {
-		println(r.points)
 		sortX := xSorter{n: n, points: r.points, start: n.start, end: n.end, bucketSize:  N1}
 		sortX.Sort()
 	}
@@ -184,12 +165,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, confirmCh chan int, isCalledAs
 	// compute children
 	for _, c := range n.children {
 		// Only launch a goroutine for big height. we don't want a goroutine to sort 4 points
-		if n.height > MAX_HEIGHT_TO_SPLIT {
-			confirmCh <- 1
-			go r.buildNodeDownwards(c, confirmCh, true, false)
-		} else {
-			r.buildNodeDownwards(c, confirmCh, false, false)
-		}
+		r.buildNodeDownwards(c, true, false)
 	}
 }
 
