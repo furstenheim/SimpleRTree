@@ -4,6 +4,10 @@ import (
 	"log"
 	"math"
 	"container/heap"
+	"text/template"
+	"bytes"
+	"fmt"
+	"strings"
 )
 
 
@@ -56,7 +60,7 @@ func (r *SimpleRTree) LoadSortedArray(points Interface) *SimpleRTree {
 	return r.load(points, true)
 }
 
-func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
+func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found bool){
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
@@ -81,7 +85,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
 		} else {
 			for _, n := range(item.node.children) {
 				mind, maxd := n.computeDistances(x, y)
-				if (mind < distanceUpperBound) {
+				if (mind <= distanceUpperBound) {
 					heap.Push(&sq, &searchQueueItem{node: n, distance: mind})
 				}
 				// Distance to one of the corners is lower than the upper bound
@@ -92,8 +96,12 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64){
 			}
 		}
 	}
+	if (minItem == nil) {
+		return
+	}
 	x1 = minItem.node.BBox.MaxX
 	y1 = minItem.node.BBox.MaxY
+	found = true
 	return
 }
 
@@ -212,54 +220,105 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 	}
 }
 
+func (r *SimpleRTree) toJSON () {
+	text := make([]string, 0)
+	fmt.Println(strings.Join(r.rootNode.toJSON(text), ","))
+}
+
+func (n *Node) toJSON (text []string) []string {
+	t, err := template.New("foo").Parse(`{
+	       "type": "Feature",
+	       "properties": {},
+	       "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+       [
+       [
+       {{.BBox.MinX}},
+       {{.BBox.MinY}}
+       ],
+       [
+       {{.BBox.MaxX}},
+       {{.BBox.MinY}}
+       ],
+       [
+       {{.BBox.MaxX}},
+       {{.BBox.MaxY}}
+       ],
+       [
+       {{.BBox.MinX}},
+       {{.BBox.MaxY}}
+       ],
+       [
+       {{.BBox.MinX}},
+       {{.BBox.MinY}}
+       ]
+       ]
+       ]
+       }
+       }`)
+	if (err != nil) {
+		log.Fatal(err)
+	}
+	var tpl bytes.Buffer
+	if err := t.Execute(&tpl, n); err != nil {
+		log.Fatal(err)
+	}
+	text = append(text, tpl.String())
+	for _, c := range(n.children) {
+		text = c.toJSON(text)
+	}
+	return text
+}
+
 func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
-	// TODO try reuse array
-	// TODO try simd
-	if (n.isLeaf) {
-		// node is point, there is only one distance
-		d := math.Pow(x - n.BBox.MinX, 2)  + math.Pow(y - n.BBox.MinY, 2)
-		return d, d
-	}
+       // TODO try reuse array
+       // TODO try simd
+       if (n.isLeaf) {
+	       // node is point, there is only one distance
+	       d := math.Pow(x - n.BBox.MinX, 2)  + math.Pow(y - n.BBox.MinY, 2)
+	       return d, d
+       }
 
-	distances := [4]float64{
-		math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MinY, 2),
-		math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MaxY, 2),
-		math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MinY, 2),
-		math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MaxY, 2),
-	}
-	mind, maxd = minmaxFloatArray(distances)
+       distances := [4]float64{
+	       math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MinY, 2),
+	       math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MaxY, 2),
+	       math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MinY, 2),
+	       math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MaxY, 2),
+       }
+       mind, maxd = minmaxFloatArray(distances)
 
-	// Min distance is vertical line
-	if (n.BBox.MinX <= x && x <= n.BBox.MaxX) {
-		mind = math.Min(math.Pow(n.BBox.MaxY - y, 2), math.Pow(n.BBox.MinY - y, 2))
-	}
-	if (n.BBox.MinY <= y && y <= n.BBox.MaxY) {
-		mind = math.Min(math.Pow(n.BBox.MaxX - x, 2), math.Pow(n.BBox.MinX - x, 2))
-	}
-	if (n.BBox.containsPoint(x, y)) {
-		mind = 0
-	}
-	return
+       // Min distance is vertical line
+       if (n.BBox.MinX <= x && x <= n.BBox.MaxX) {
+	       mind = math.Min(math.Pow(n.BBox.MaxY - y, 2), math.Pow(n.BBox.MinY - y, 2))
+       }
+       if (n.BBox.MinY <= y && y <= n.BBox.MaxY) {
+	       mind = math.Min(math.Pow(n.BBox.MaxX - x, 2), math.Pow(n.BBox.MinX - x, 2))
+       }
+       if (n.BBox.containsPoint(x, y)) {
+	       mind = 0
+       }
+       return
 }
 
 func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+       if a < b {
+	       return a
+       }
+       return b
 }
 
 func minmaxFloatArray (s [4]float64) (min, max float64) {
-	// TODO try min of four
-	min = s[0]
-	max = s[0]
-	for _, e := range s {
-		if e < min {
-			min = e
-		}
-		if e > min {
-			max = e
-		}
-	}
-	return min, max
+       // TODO try min of four
+       min = s[0]
+       max = s[0]
+       for _, e := range s {
+	       if e < min {
+		       min = e
+	       }
+	       if e > min {
+		       max = e
+	       }
+       }
+       return min, max
 }

@@ -30,10 +30,11 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	}
 	fp := flatPoints(points)
 	r := New().Load(fp)
-	 for i := 0; i < 1000; i++ {
+	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
-		x1, y1 := r.FindNearestPoint(x, y)
+		x1, y1, found := r.FindNearestPoint(x, y)
 		x2, y2 := fp.linearClosestPoint(x, y)
+		assert.True(t, found, "We should always find nearest")
 		assert.Equal(t, x1, x2)
 		assert.Equal(t, y1, y2)
 	}
@@ -41,7 +42,7 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 }
 
 func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
-	const size = 2000
+	const size = 20000
 	points := make([]float64, size * 2)
 	for i := 0; i < 2 * size; i++ {
 		points[i] = rand.Float64()
@@ -49,9 +50,10 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	fp := flatPoints(points)
 	r := New().Load(fp)
 	fmt.Println("Finished loading")
-	 for i := 0; i < 1000; i++ {
+	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
-		x1, y1 := r.FindNearestPoint(x, y)
+		x1, y1, found := r.FindNearestPoint(x, y)
+		assert.True(t, found, "We should always find nearest")
 		x2, y2 := fp.linearClosestPoint(x, y)
 		assert.Equal(t, x1, x2)
 		assert.Equal(t, y1, y2)
