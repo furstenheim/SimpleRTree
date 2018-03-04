@@ -304,19 +304,19 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
        }
 
        distances := [4]float64{
-	       math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MinY, 2),
-	       math.Pow(x - n.BBox.MinX, 2) + math.Pow(y - n.BBox.MaxY, 2),
-	       math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MinY, 2),
-	       math.Pow(x - n.BBox.MaxX, 2) + math.Pow(y - n.BBox.MaxY, 2),
+	       (x - n.BBox.MinX) * (x - n.BBox.MinX) + (y - n.BBox.MinY) * (y - n.BBox.MinY),
+	       (x - n.BBox.MinX) * (x - n.BBox.MinX) + (y - n.BBox.MaxY) * (y - n.BBox.MaxY),
+	       (x - n.BBox.MaxX) * (x - n.BBox.MaxX) + (y - n.BBox.MinY) * (y - n.BBox.MinY),
+	       (x - n.BBox.MaxX) * (x - n.BBox.MaxX) + (y - n.BBox.MaxY) * (y - n.BBox.MaxY),
        }
        mind, maxd = minmaxFloatArray(distances)
 
        // Min distance is vertical line
        if (n.BBox.MinX <= x && x <= n.BBox.MaxX) {
-	       mind = math.Min(math.Pow(n.BBox.MaxY - y, 2), math.Pow(n.BBox.MinY - y, 2))
+	       mind = math.Min((n.BBox.MaxY - y) * (n.BBox.MaxY - y), (n.BBox.MinY - y) * (n.BBox.MinY - y))
        }
        if (n.BBox.MinY <= y && y <= n.BBox.MaxY) {
-	       mind = math.Min(math.Pow(n.BBox.MaxX - x, 2), math.Pow(n.BBox.MinX - x, 2))
+	       mind = math.Min((n.BBox.MaxX - x) * (n.BBox.MaxX - x), (n.BBox.MinX - x) * (n.BBox.MinX - x))
        }
        if (n.BBox.containsPoint(x, y)) {
 	       mind = 0
