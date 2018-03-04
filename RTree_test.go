@@ -85,7 +85,7 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 		name string
 		size int
 	}{
-		{"10", 10,},
+		{"100", 100,},
 	}
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func (b * testing.B) {

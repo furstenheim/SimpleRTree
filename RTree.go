@@ -66,8 +66,8 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
-	sq := *r.queuePool.take()
-	heap.Init(&sq)
+	sq := r.queuePool.take()
+	heap.Init(sq)
 
 	pool := r.pool
 	mind, maxd := r.rootNode.computeDistances(x, y)
@@ -75,12 +75,13 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 	item := pool.take()
 	item.node = r.rootNode
 	item.distance = mind
-	heap.Push(&sq, item)
+	heap.Push(sq, item)
 
 	for sq.Len() > 0 {
-		item := heap.Pop(&sq).(*searchQueueItem)
+		item := heap.Pop(sq).(*searchQueueItem)
 		currentDistance := item.distance
 		if (minItem != nil && currentDistance > distanceLowerBound) {
+			pool.giveBack(item);
 			break
 		}
 
@@ -95,7 +96,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 					childItem := pool.take()
 					childItem.node = n
 					childItem.distance = mind
-					heap.Push(&sq, childItem)
+					heap.Push(sq, childItem)
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -107,7 +108,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 		pool.giveBack(item)
 	}
 
-	r.queuePool.giveBack(&sq)
+	r.queuePool.giveBack(sq)
 	if (minItem == nil) {
 		return
 	}

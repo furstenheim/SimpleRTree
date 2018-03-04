@@ -19,6 +19,7 @@ func (p searchQueuePool) take () *searchQueue {
 		obj.Empty()
 		return obj
 	default:
+		// TODO add size
 		return new(searchQueue)
 	}
 }

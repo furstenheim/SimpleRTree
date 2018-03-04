@@ -5,17 +5,17 @@ This is a static RTree that only accepts points as input
 
 ### Benchmark. CPU
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	  500000	      4104 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  100000	     17384 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  100000	     29522 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	   50000	     31716 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	   50000	     33006 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	  500000	      3644 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  100000	     17649 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  100000	     27525 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	   50000	     33100 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	   50000	     32779 ns/op
+
 
 ### Benchmark. Memory
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	  300000	      4798 ns/op	      59 B/op	       2 allocs/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  100000	     18148 ns/op	     189 B/op	      10 allocs/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	   50000	     29156 ns/op	     269 B/op	      15 allocs/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	   50000	     31629 ns/op	     359 B/op	      21 allocs/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	   50000	     33116 ns/op	     392 B/op	      23 allocs/op
-
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	  500000	      3840 ns/op	      13 B/op	       0 allocs/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  100000	     16977 ns/op	     144 B/op	       9 allocs/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	   50000	     30359 ns/op	     223 B/op	      13 allocs/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	   50000	     31566 ns/op	     312 B/op	      19 allocs/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	   50000	     32787 ns/op	     343 B/op	      21 allocs/op
