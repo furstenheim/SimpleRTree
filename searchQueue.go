@@ -32,3 +32,8 @@ func (sq *searchQueue) Pop() interface{} {
 	*sq = arr[0: sq.Len() - 1]
 	return item
 }
+
+func (sq *searchQueue) Empty() {
+	arr := *sq
+	*sq = arr[0: 0]
+}

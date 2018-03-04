@@ -28,6 +28,7 @@ type SimpleRTree struct {
 	points Interface
 	built bool
 	pool * searchPool
+	queuePool * searchQueuePool
 }
 type Node struct {
 	children   []*Node
@@ -65,7 +66,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
-	sq := make(searchQueue, 0, r.rootNode.height * r.options.MAX_ENTRIES)
+	sq := *r.queuePool.take()
 	heap.Init(&sq)
 
 	pool := r.pool
@@ -105,6 +106,8 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 		}
 		pool.giveBack(item)
 	}
+
+	r.queuePool.giveBack(&sq)
 	if (minItem == nil) {
 		return
 	}
@@ -125,6 +128,7 @@ func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
 	node := r.build(points, isSorted)
 	r.rootNode = node
 	r.pool = newSearchPool(r.rootNode.height * r.options.MAX_ENTRIES)
+	r.queuePool = newSearchQueuePool(2, r.rootNode.height * r.options.MAX_ENTRIES)
 	return r
 }
 
