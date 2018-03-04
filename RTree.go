@@ -299,7 +299,7 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
        // TODO try simd
        if (n.isLeaf) {
 	       // node is point, there is only one distance
-	       d := math.Pow(x - n.BBox.MinX, 2)  + math.Pow(y - n.BBox.MinY, 2)
+	       d := (x - n.BBox.MinX) * (x - n.BBox.MinX)  + (y - n.BBox.MinY) * (y - n.BBox.MinY)
 	       return d, d
        }
 
