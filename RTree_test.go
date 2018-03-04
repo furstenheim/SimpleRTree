@@ -8,19 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"fmt"
 )
-/*const size = 200
-var benchPoints = make([]float64, size * 2)
-var fps flatPoints
-var r *SimpleRTree
-func init () {
-	for i := 0; i < 2 * size; i++ {
-		benchPoints[i] = rand.Float64()
-	}
-	fps = flatPoints(benchPoints)
-	fmt.Println("Starting loading points")
-	r = New().Load(fps)
-	fmt.Println("Finished loading points")
-}*/
 
 func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	const size = 20
@@ -64,19 +51,36 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 
 
 
-/*func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		x, y := rand.Float64(), rand.Float64()
-		_, _ = r.FindNearestPoint(x, y)
+func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
+	benchmarks := []struct{
+		name string
+		size int
+	}{
+		{"10", 10,},
+		{"1000", 1000,},
+		{"10000", 10000,},
+		{"100000", 100000,},
+		{"200000", 200000,},
 	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func (b * testing.B) {
+			size := bm.size
+			points := make([]float64, size * 2)
+			for i := 0; i < 2 * size; i++ {
+				points[i] = rand.Float64()
+			}
+			fp := flatPoints(points)
+			r := New().Load(fp)
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				x, y := rand.Float64(), rand.Float64()
+				_, _, _ = r.FindNearestPoint(x, y)
+			}
+		})
+	}
+	fmt.Println("Finished loading")
 }
 
-func BenchmarkSimpleRTree_LinearSearch(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		x, y := rand.Float64(), rand.Float64()
-		_, _ = fps.linearClosestPoint(x, y)
-	}
-}*/
 type flatPoints []float64
 
 func (fp flatPoints) Len () int {
