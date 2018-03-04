@@ -10,7 +10,6 @@ import (
 	"strings"
 )
 
-
 type Interface interface {
 	GetPointAt(i int) (x1, y1 float64)        // Retrieve point at position i
 	Len() int                                 // Number of elements
@@ -108,7 +107,14 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 		pool.giveBack(item)
 	}
 
+	// Return all missing items. This could probably be async
+	for sq.Len() > 0 {
+		item := heap.Pop(sq).(*searchQueueItem)
+		pool.giveBack(item)
+	}
+
 	r.queuePool.giveBack(sq)
+
 	if (minItem == nil) {
 		return
 	}
@@ -130,6 +136,8 @@ func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
 	r.rootNode = node
 	r.pool = newSearchPool(r.rootNode.height * r.options.MAX_ENTRIES)
 	r.queuePool = newSearchQueuePool(2, r.rootNode.height * r.options.MAX_ENTRIES)
+	// Max proportion when not checking max distance 2.3111111111111113
+	// Max proportion checking max distance 39 6 9 0.7222222222222222
 	return r
 }
 
@@ -318,6 +326,13 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 
 func minInt(a, b int) int {
        if a < b {
+	       return a
+       }
+       return b
+}
+
+func maxInt(a, b int) int {
+       if a > b {
 	       return a
        }
        return b
