@@ -78,7 +78,31 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 			}
 		})
 	}
-	fmt.Println("Finished loading")
+}
+
+func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
+	benchmarks := []struct{
+		name string
+		size int
+	}{
+		{"10", 10,},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func (b * testing.B) {
+			size := bm.size
+			points := make([]float64, size * 2)
+			for i := 0; i < 2 * size; i++ {
+				points[i] = rand.Float64()
+			}
+			fp := flatPoints(points)
+			r := New().Load(fp)
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				x, y := rand.Float64(), rand.Float64()
+				_, _, _ = r.FindNearestPoint(x, y)
+			}
+		})
+	}
 }
 
 type flatPoints []float64
