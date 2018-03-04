@@ -27,6 +27,7 @@ type SimpleRTree struct {
 	rootNode *Node
 	points Interface
 	built bool
+	pool * searchPool
 }
 type Node struct {
 	children   []*Node
@@ -67,9 +68,13 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 	sq := make(searchQueue, 0, r.rootNode.height * r.options.MAX_ENTRIES)
 	heap.Init(&sq)
 
+	pool := r.pool
 	mind, maxd := r.rootNode.computeDistances(x, y)
 	distanceUpperBound := maxd
-	heap.Push(&sq, &searchQueueItem{node: r.rootNode, distance: mind})
+	item := pool.take()
+	item.node = r.rootNode
+	item.distance = mind
+	heap.Push(&sq, item)
 
 	for sq.Len() > 0 {
 		item := heap.Pop(&sq).(*searchQueueItem)
@@ -86,7 +91,10 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 			for _, n := range(item.node.children) {
 				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
-					heap.Push(&sq, &searchQueueItem{node: n, distance: mind})
+					childItem := pool.take()
+					childItem.node = n
+					childItem.distance = mind
+					heap.Push(&sq, childItem)
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -95,6 +103,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 				}
 			}
 		}
+		pool.giveBack(item)
 	}
 	if (minItem == nil) {
 		return
@@ -115,6 +124,7 @@ func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
 
 	node := r.build(points, isSorted)
 	r.rootNode = node
+	r.pool = newSearchPool(r.rootNode.height * r.options.MAX_ENTRIES)
 	return r
 }
 
