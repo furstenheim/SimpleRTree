@@ -49,7 +49,33 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 }
 
 
+func BenchmarkSimpleRTree_Load(b *testing.B) {
+	benchmarks := []struct{
+		name string
+		size int
+	}{
+		{"10", 10,},
+		{"1000", 1000,},
+		{"10000", 10000,},
+		{"100000", 100000,},
+		{"200000", 200000,},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func (b * testing.B) {
+			size := bm.size
+			points := make([]float64, size * 2)
+			for i := 0; i < 2 * size; i++ {
+				points[i] = rand.Float64()
+			}
+			fp := flatPoints(points)
 
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				_ = New().Load(fp)
+			}
+		})
+	}
+}
 
 func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 	benchmarks := []struct{
@@ -100,6 +126,28 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				x, y := rand.Float64(), rand.Float64()
 				_, _, _ = r.FindNearestPoint(x, y)
+			}
+		})
+	}
+}
+func BenchmarkSimpleRTree_LoadMemory(b *testing.B) {
+	benchmarks := []struct{
+		name string
+		size int
+	}{
+		{"1000", 1000,},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func (b * testing.B) {
+			size := bm.size
+			points := make([]float64, size * 2)
+			for i := 0; i < 2 * size; i++ {
+				points[i] = rand.Float64()
+			}
+			fp := flatPoints(points)
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				_ = New().Load(fp)
 			}
 		})
 	}
