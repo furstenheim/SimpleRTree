@@ -34,7 +34,6 @@ type Node struct {
 	height     int
 	isLeaf     bool
 	start, end int // index in the underlying array
-	parentNode *Node
 	BBox       BBox
 }
 
@@ -172,7 +171,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, isCalledAsync, isSorted bool) 
 	N1 := N2 * int(math.Ceil(math.Sqrt(M)))
 
 	// parent node might already be sorted. In that case we avoid double computation
-	if (n.parentNode != nil || !isSorted) {
+	if (!isSorted) {
 		sortX := xSorter{n: n, points: r.points, start: n.start, end: n.end, bucketSize:  N1}
 		sortX.Sort()
 	}
@@ -186,7 +185,6 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, isCalledAsync, isSorted bool) 
 				start: n.start + j,
 				end: n.start + right3,
 				height:     n.height - 1,
-				parentNode: n,
 			}
 			n.children = append(n.children, &child)
 			// remove reference to interface, we only need it for points
@@ -238,7 +236,6 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 				MinY: y1,
 				MaxY: y1,
 			},
-			parentNode: n,
 		}
 	}
 }
