@@ -15,7 +15,7 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	for i := 0; i < 2 * size; i++ {
 		points[i] = rand.Float64()
 	}
-	fp := flatPoints(points)
+	fp := FlatPoints(points)
 	r := New().Load(fp)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
@@ -34,7 +34,7 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	for i := 0; i < 2 * size; i++ {
 		points[i] = rand.Float64()
 	}
-	fp := flatPoints(points)
+	fp := FlatPoints(points)
 	r := New().Load(fp)
 	fmt.Println("Finished loading")
 	for i := 0; i < 1000; i++ {
@@ -67,7 +67,7 @@ func BenchmarkSimpleRTree_Load(b *testing.B) {
 			for i := 0; i < 2 * size; i++ {
 				points[i] = rand.Float64()
 			}
-			fp := flatPoints(points)
+			fp := FlatPoints(points)
 
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
@@ -95,7 +95,7 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 			for i := 0; i < 2 * size; i++ {
 				points[i] = rand.Float64()
 			}
-			fp := flatPoints(points)
+			fp := FlatPoints(points)
 			r := New().Load(fp)
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
@@ -120,7 +120,7 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 			for i := 0; i < 2 * size; i++ {
 				points[i] = rand.Float64()
 			}
-			fp := flatPoints(points)
+			fp := FlatPoints(points)
 			r := New().Load(fp)
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
@@ -144,7 +144,7 @@ func BenchmarkSimpleRTree_LoadMemory(b *testing.B) {
 			for i := 0; i < 2 * size; i++ {
 				points[i] = rand.Float64()
 			}
-			fp := flatPoints(points)
+			fp := FlatPoints(points)
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
 				_ = New().Load(fp)
@@ -153,21 +153,8 @@ func BenchmarkSimpleRTree_LoadMemory(b *testing.B) {
 	}
 }
 
-type flatPoints []float64
 
-func (fp flatPoints) Len () int {
-	return len(fp) / 2
-}
-
-func (fp flatPoints) Swap (i, j int) {
-	fp[2 * i], fp[2 * i + 1], fp[2 * j], fp[2 * j + 1] = fp[2 * j], fp[2 * j + 1], fp[2 * i], fp[2 * i + 1]
-}
-
-func (fp flatPoints) GetPointAt(i int) (x1, y1 float64) {
-	return fp[2 * i], fp[2 * i +1]
-}
-
-func (fp flatPoints) linearClosestPoint (x, y float64) (x1, y1 float64) {
+func (fp FlatPoints ) linearClosestPoint (x, y float64) (x1, y1 float64) {
 	d := math.Inf(1)
 	for i := 0; i < fp.Len(); i++ {
 		x2, y2 := fp.GetPointAt(i)

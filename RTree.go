@@ -24,7 +24,7 @@ type Options struct {
 type SimpleRTree struct {
 	options  Options
 	rootNode *Node
-	points Interface
+	points FlatPoints
 	built bool
 	pool * searchPool
 	queuePool * searchQueuePool
@@ -53,11 +53,11 @@ func NewWithOptions(options Options) *SimpleRTree {
 	return r
 }
 
-func (r *SimpleRTree) Load(points Interface) *SimpleRTree {
+func (r *SimpleRTree) Load(points FlatPoints) *SimpleRTree {
 	return r.load(points, false)
 }
 
-func (r *SimpleRTree) LoadSortedArray(points Interface) *SimpleRTree {
+func (r *SimpleRTree) LoadSortedArray(points FlatPoints) *SimpleRTree {
 	return r.load(points, true)
 }
 
@@ -124,7 +124,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 	return
 }
 
-func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
+func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
 	if points.Len() == 0 {
 		return r
 	}
@@ -141,7 +141,7 @@ func (r *SimpleRTree) load (points Interface, isSorted bool) *SimpleRTree {
 	return r
 }
 
-func (r *SimpleRTree) build(points Interface, isSorted bool) *Node {
+func (r *SimpleRTree) build(points FlatPoints, isSorted bool) *Node {
 
 	r.points = points
 	rootNode := &Node{
@@ -351,4 +351,19 @@ func minmaxFloatArray (s [4]float64) (min, max float64) {
 	       }
        }
        return min, max
+}
+
+
+type FlatPoints []float64
+
+func (fp FlatPoints) Len () int {
+	return len(fp) / 2
+}
+
+func (fp FlatPoints) Swap (i, j int) {
+	fp[2 * i], fp[2 * i + 1], fp[2 * j], fp[2 * j + 1] = fp[2 * j], fp[2 * j + 1], fp[2 * i], fp[2 * i + 1]
+}
+
+func (fp FlatPoints) GetPointAt(i int) (x1, y1 float64) {
+	return fp[2 * i], fp[2 * i +1]
 }

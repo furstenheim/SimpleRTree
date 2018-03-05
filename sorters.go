@@ -1,10 +1,9 @@
 package SimpleRTree
 
-import "github.com/furstenheim/FloydRivest"
 
 type xSorter struct {
 	n          *Node
-	points Interface
+	points FlatPoints
 	start, end, bucketSize int
 }
 
@@ -23,12 +22,12 @@ func (s xSorter) Len() int {
 }
 
 func (s xSorter) Sort() {
-	FloydRivest.Buckets(s, s.bucketSize)
+	bucketsX(s, s.bucketSize)
 }
 
 type ySorter struct {
 	n          *Node
-	points Interface
+	points FlatPoints
 	start, end, bucketSize int
 }
 
@@ -47,5 +46,5 @@ func (s ySorter) Len() int {
 }
 func (s ySorter) Sort() {
 	// we already do the shifting on the sort functions
-	FloydRivest.Buckets(s, s.bucketSize)
+	bucketsY(s, s.bucketSize)
 }
