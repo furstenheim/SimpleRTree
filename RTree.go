@@ -296,33 +296,35 @@ func (n *Node) toJSON (text []string) []string {
 }
 
 func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
-       // TODO try reuse array
-       // TODO try simd
-       if (n.isLeaf) {
+	// TODO try reuse array
+	// TODO try simd
+	if (n.isLeaf) {
 	       // node is point, there is only one distance
 	       d := (x - n.BBox.MinX) * (x - n.BBox.MinX)  + (y - n.BBox.MinY) * (y - n.BBox.MinY)
 	       return d, d
-       }
+	}
+	minx, maxx := sortFloats((x - n.BBox.MinX) * (x - n.BBox.MinX), (x - n.BBox.MaxX) * (x - n.BBox.MaxX))
+	miny, maxy := sortFloats((y - n.BBox.MinY) * (y - n.BBox.MinY), (y - n.BBox.MaxY) * (y - n.BBox.MaxY))
 
-       distances := [4]float64{
-	       (x - n.BBox.MinX) * (x - n.BBox.MinX) + (y - n.BBox.MinY) * (y - n.BBox.MinY),
-	       (x - n.BBox.MinX) * (x - n.BBox.MinX) + (y - n.BBox.MaxY) * (y - n.BBox.MaxY),
-	       (x - n.BBox.MaxX) * (x - n.BBox.MaxX) + (y - n.BBox.MinY) * (y - n.BBox.MinY),
-	       (x - n.BBox.MaxX) * (x - n.BBox.MaxX) + (y - n.BBox.MaxY) * (y - n.BBox.MaxY),
-       }
-       mind, maxd = minmaxFloatArray(distances)
+	sideX := (n.BBox.MaxX - n.BBox.MinX) * (n.BBox.MaxX - n.BBox.MinX)
+	sideY := (n.BBox.MaxY - n.BBox.MinY) * (n.BBox.MaxY - n.BBox.MinY)
 
-       // Min distance is vertical line
-       if (n.BBox.MinX <= x && x <= n.BBox.MaxX) {
-	       mind = math.Min((n.BBox.MaxY - y) * (n.BBox.MaxY - y), (n.BBox.MinY - y) * (n.BBox.MinY - y))
-       }
-       if (n.BBox.MinY <= y && y <= n.BBox.MaxY) {
-	       mind = math.Min((n.BBox.MaxX - x) * (n.BBox.MaxX - x), (n.BBox.MinX - x) * (n.BBox.MinX - x))
-       }
-       if (n.BBox.containsPoint(x, y)) {
-	       mind = 0
-       }
-       return
+	// fmt.Println(sides)
+	// point is inside because max distances in both axis are smaller than sides of the square
+	if (maxx < sideX && maxy < sideY) {
+		// do nothing mind is already 0
+	} else if (maxx < sideX) {
+		// point is in vertical stripe. Hence distance to the bbox is maximum vertical distance
+		mind = miny
+	} else if (maxy < sideY) {
+		// point is in horizontal stripe, Hence distance is least distance to one of the sides (vertical distance is 0
+		mind = minx
+	} else {
+		// point is not inside bbox. closest vertex is that one with closest x and y
+		mind = minx + miny
+	}
+	maxd = maxx + maxy
+	return
 }
 
 func minInt(a, b int) int {
@@ -330,27 +332,6 @@ func minInt(a, b int) int {
 	       return a
        }
        return b
-}
-
-func maxInt(a, b int) int {
-       if a > b {
-	       return a
-       }
-       return b
-}
-
-func minmaxFloatArray (s [4]float64) (min, max float64) {
-       min = s[0]
-       max = s[0]
-       for _, e := range s {
-	       if e < min {
-		       min = e
-	       }
-	       if e > min {
-		       max = e
-	       }
-       }
-       return min, max
 }
 
 
@@ -366,4 +347,11 @@ func (fp FlatPoints) Swap (i, j int) {
 
 func (fp FlatPoints) GetPointAt(i int) (x1, y1 float64) {
 	return fp[2 * i], fp[2 * i +1]
+}
+
+func sortFloats (x1, x2 float64) (x3, x4 float64) {
+	if (x1 > x2) {
+		return x2, x1
+	}
+	return x1, x2
 }

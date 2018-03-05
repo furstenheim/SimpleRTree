@@ -12,7 +12,7 @@ bench-mem-trace:
 bench-graph:
 	mkdir -p benchmarks/$$(git rev-parse HEAD)
 	go test -run=XXX -bench Find -cpuprofile benchmarks/$$(git rev-parse HEAD)/cpu.prof
-	go tool pprof -svg SimpleRTree.test benchmarks/$$(git rev-parse HEAD)/cpu.prof > benchmarks/$$(git rev-parse HEAD)/cpu.svgbench:
+	go tool pprof -svg SimpleRTree.test benchmarks/$$(git rev-parse HEAD)/cpu.prof > benchmarks/$$(git rev-parse HEAD)/cpu.svg
 bench-load:
 	go test -v -bench=Load
 ## Show allocs per test
