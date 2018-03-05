@@ -5,13 +5,11 @@ This is a static RTree that only accepts points as input
 
 ### Benchmark. CPU
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 1000000	      1101 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  300000	      4397 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  200000	      6579 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  200000	      9561 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  200000	     10284 ns/op
-
-
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 2000000	       754 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  500000	      3116 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  300000	      4743 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  200000	      6988 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  200000	      7828 ns/op
 
 
 ### Benchmark Load CPU

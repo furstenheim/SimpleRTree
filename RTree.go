@@ -26,7 +26,8 @@ type SimpleRTree struct {
 	rootNode *Node
 	points FlatPoints
 	built bool
-	pool * searchPool
+	// Store pool of pools so that between algorithms it uses a channel (thread safe) within one algorithm it uses array
+	queueItemPoolPool * searchQueueItemPoolPool
 	queuePool * searchQueuePool
 }
 type Node struct {
@@ -60,17 +61,17 @@ func (r *SimpleRTree) LoadSortedArray(points FlatPoints) *SimpleRTree {
 	return r.load(points, true)
 }
 
-func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found bool){
+func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found bool){
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
 	sq := r.queuePool.take()
 	heap.Init(sq)
 
-	pool := r.pool
+	queueItemPool := r.queueItemPoolPool.take()
 	mind, maxd := r.rootNode.computeDistances(x, y)
 	distanceUpperBound := maxd
-	item := pool.take()
+	item := queueItemPool.take()
 	item.node = r.rootNode
 	item.distance = mind
 	heap.Push(sq, item)
@@ -79,7 +80,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 		item := heap.Pop(sq).(*searchQueueItem)
 		currentDistance := item.distance
 		if (minItem != nil && currentDistance > distanceLowerBound) {
-			pool.giveBack(item);
+			queueItemPool.giveBack(item);
 			break
 		}
 
@@ -91,7 +92,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 			for _, n := range(item.node.children) {
 				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
-					childItem := pool.take()
+					childItem := queueItemPool.take()
 					childItem.node = n
 					childItem.distance = mind
 					heap.Push(sq, childItem)
@@ -103,15 +104,17 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 				}
 			}
 		}
-		pool.giveBack(item)
+		queueItemPool.giveBack(item)
 	}
 
 	// Return all missing items. This could probably be async
 	for sq.Len() > 0 {
 		item := heap.Pop(sq).(*searchQueueItem)
-		pool.giveBack(item)
+		queueItemPool.giveBack(item)
 	}
 
+	// return pool of items
+	r.queueItemPoolPool.giveBack(queueItemPool)
 	r.queuePool.giveBack(sq)
 
 	if (minItem == nil) {
@@ -119,6 +122,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1 float64, found boo
 	}
 	x1 = minItem.node.BBox.MaxX
 	y1 = minItem.node.BBox.MaxY
+	d1 = distanceUpperBound
 	found = true
 	return
 }
@@ -133,7 +137,7 @@ func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
 
 	node := r.build(points, isSorted)
 	r.rootNode = node
-	r.pool = newSearchPool(r.rootNode.height * r.options.MAX_ENTRIES)
+	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, r.rootNode.height * r.options.MAX_ENTRIES)
 	r.queuePool = newSearchQueuePool(2, r.rootNode.height * r.options.MAX_ENTRIES)
 	// Max proportion when not checking max distance 2.3111111111111113
 	// Max proportion checking max distance 39 6 9 0.7222222222222222
@@ -336,7 +340,6 @@ func maxInt(a, b int) int {
 }
 
 func minmaxFloatArray (s [4]float64) (min, max float64) {
-       // TODO try min of four
        min = s[0]
        max = s[0]
        for _, e := range s {

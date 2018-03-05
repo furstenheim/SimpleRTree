@@ -2,25 +2,28 @@ package SimpleRTree
 
 // Reuse items to avoid allocation
 
-type searchPool chan *searchQueueItem
+type searchQueueItemPool []*searchQueueItem
 
-func newSearchPool (total int) * searchPool {
-	p := make(searchPool, total)
+func newSearchQueuItemPool (total int) * searchQueueItemPool {
+	p := make(searchQueueItemPool, total)
 	for i:= 0; i < total; i++ {
-		p <- new(searchQueueItem)
+		p[i] = new(searchQueueItem)
 	}
 	return &p
 }
 
-func (p searchPool) take () *searchQueueItem {
-	select {
-	case obj := <-p:
-		return obj
-	default:
+func (p *searchQueueItemPool) take () *searchQueueItem {
+	arr := *p
+	if len(arr) == 0 {
 		return new(searchQueueItem)
 	}
+
+	item := arr[len(arr) - 1]
+	*p = arr[0: len(arr) -1]
+	return item
 }
 
-func (p searchPool) giveBack (item *searchQueueItem) {
-	p <- item
+func (p * searchQueueItemPool) giveBack (item *searchQueueItem) {
+	arr := *p
+	*p = append(arr, item)
 }
