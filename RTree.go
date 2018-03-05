@@ -36,7 +36,6 @@ type Node struct {
 	isLeaf     bool
 	start, end int // index in the underlying array
 	BBox       BBox
-	aBBox 	  [4]float64
 }
 
 // Create an RBush index from an array of points
@@ -70,8 +69,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found
 	heap.Init(sq)
 
 	queueItemPool := r.queueItemPoolPool.take()
-	coords := [4]float64{x, x, y, y}
-	mind, maxd := r.rootNode.computeDistances(coords)
+	mind, maxd := r.rootNode.computeDistances(x, y)
 	distanceUpperBound := maxd
 	item := queueItemPool.take()
 	item.node = r.rootNode
@@ -92,7 +90,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found
 			minItem = item
 		} else {
 			for _, n := range(item.node.children) {
-				mind, maxd := n.computeDistances(coords)
+				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
 					childItem := queueItemPool.take()
 					childItem.node = n
@@ -220,7 +218,6 @@ func (n *Node) computeBBoxDownwards() BBox {
 		}
 	}
 	n.BBox = bbox
-	n.aBBox = [4]float64{n.BBox.MinX, n.BBox.MaxX, n.BBox.MinY, n.BBox.MaxY}
 	return bbox
 }
 
@@ -298,17 +295,16 @@ func (n *Node) toJSON (text []string) []string {
 	return text
 }
 
-func (n * Node) computeDistances (coords [4]float64) (mind, maxd float64) {
-	bbox := sse2Vec64Sub(coords, n.aBBox)
-	bbox = sse2Vec64Mul(bbox, bbox)
+func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
+	// TODO try reuse array
 	// TODO try simd
 	if (n.isLeaf) {
 	       // node is point, there is only one distance
-	       d := bbox[0]  + bbox[2]
+	       d := (x - n.BBox.MinX) * (x - n.BBox.MinX)  + (y - n.BBox.MinY) * (y - n.BBox.MinY)
 	       return d, d
 	}
-	minx, maxx := sortFloats(bbox[0], bbox[1])
-	miny, maxy := sortFloats(bbox[2], bbox[3])
+	minx, maxx := sortFloats((x - n.BBox.MinX) * (x - n.BBox.MinX), (x - n.BBox.MaxX) * (x - n.BBox.MaxX))
+	miny, maxy := sortFloats((y - n.BBox.MinY) * (y - n.BBox.MinY), (y - n.BBox.MaxY) * (y - n.BBox.MaxY))
 
 	sideX := (n.BBox.MaxX - n.BBox.MinX) * (n.BBox.MaxX - n.BBox.MinX)
 	sideY := (n.BBox.MaxY - n.BBox.MinY) * (n.BBox.MaxY - n.BBox.MinY)
