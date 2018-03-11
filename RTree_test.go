@@ -28,6 +28,31 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 
 }
 
+func TestSimpleRTree_FindNearestPointWithinOutOfBBox(t *testing.T) {
+	const size = 20
+	points := make([]float64, size * 2)
+	for i := 0; i < 2 * size; i++ {
+		points[i] = rand.Float64()
+	}
+	fp := FlatPoints(points)
+	r := New().Load(fp)
+	x, y := 5., 5.
+	_, _, _, found := r.FindNearestPointWithin(x, y, 1)
+	assert.False(t, found, "Closest point is not within distance")
+
+}
+
+
+func TestSimpleRTree_FindNearestPointWithinEmptyWithinBBox(t *testing.T) {
+	points := []float64{0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0}
+	fp := FlatPoints(points)
+	r := New().Load(fp)
+	x, y := 0.5, 0.5
+	_, _, _, found := r.FindNearestPointWithin(x, y, 0.5)
+	assert.False(t, found, "Closest point is not within distance")
+}
+
+
 func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	const size = 20000
 	points := make([]float64, size * 2)

@@ -61,20 +61,34 @@ func (r *SimpleRTree) LoadSortedArray(points FlatPoints) *SimpleRTree {
 	return r.load(points, true)
 }
 
-func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found bool){
+func (r *SimpleRTree) FindNearestPointWithin(x, y, d float64) (x1, y1, d1 float64, found bool) {
+	sqd := d * d // we work with squared distances
+	return r.findNearestPointWithin(x, y, sqd)
+}
+
+func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found bool) {
+	return r.findNearestPointWithin(x, y, math.Inf(1))
+}
+func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float64, found bool){
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
+	distanceUpperBound := d
 	// if bbox is further from this bound then we don't explore it
 	sq := r.queuePool.take()
 	heap.Init(sq)
 
 	queueItemPool := r.queueItemPoolPool.take()
 	mind, maxd := r.rootNode.computeDistances(x, y)
-	distanceUpperBound := maxd
-	item := queueItemPool.take()
-	item.node = r.rootNode
-	item.distance = mind
-	heap.Push(sq, item)
+	if (maxd < distanceUpperBound) {
+		distanceUpperBound = maxd
+	}
+	// Only start search if it is within bound
+	if (mind < distanceUpperBound) {
+		item := queueItemPool.take()
+		item.node = r.rootNode
+		item.distance = mind
+		heap.Push(sq, item)
+	}
 
 	for sq.Len() > 0 {
 		item := heap.Pop(sq).(*searchQueueItem)
@@ -122,7 +136,8 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found
 	}
 	x1 = minItem.node.BBox.MaxX
 	y1 = minItem.node.BBox.MaxY
-	d1 = distanceUpperBound
+	// Only do sqrt at the end
+	d1 = math.Sqrt(distanceUpperBound)
 	found = true
 	return
 }
