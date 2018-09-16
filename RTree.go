@@ -23,7 +23,7 @@ type Options struct {
 
 type SimpleRTree struct {
 	options  Options
-	rootNode *Node
+	nodes []Node
 	points FlatPoints
 	built bool
 	// Store pool of pools so that between algorithms it uses a channel (thread safe) within one algorithm it uses array
@@ -31,14 +31,14 @@ type SimpleRTree struct {
 	queuePool * searchQueuePool
 }
 type Node struct {
-	children   []*Node
+	children   []int
 	height     int
 	isLeaf     bool
 	start, end int // index in the underlying array
 	BBox       BBox
 }
 
-// Create an RBush index from an array of points
+// Create an RTree index from an array of points
 func New() *SimpleRTree {
 	defaultOptions := Options{
 		MAX_ENTRIES: 9,
@@ -78,14 +78,15 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	heap.Init(sq)
 
 	queueItemPool := r.queueItemPoolPool.take()
-	mind, maxd := r.rootNode.computeDistances(x, y)
+	rootNode := &r.nodes[0]
+	mind, maxd := rootNode.computeDistances(x, y)
 	if (maxd < distanceUpperBound) {
 		distanceUpperBound = maxd
 	}
 	// Only start search if it is within bound
 	if (mind < distanceUpperBound) {
 		item := queueItemPool.take()
-		item.node = r.rootNode
+		item.node = rootNode
 		item.distance = mind
 		heap.Push(sq, item)
 	}
@@ -103,7 +104,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			distanceLowerBound = currentDistance
 			minItem = item
 		} else {
-			for _, n := range(item.node.children) {
+			for _, nodeIndex := range(item.node.children) {
+				n := &r.nodes[nodeIndex]
 				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
 					childItem := queueItemPool.take()
@@ -149,33 +151,37 @@ func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
 	if r.built {
 		log.Fatal("Tree is static, cannot load twice")
 	}
+	r.built = true
 
-	node := r.build(points, isSorted)
-	r.rootNode = node
-	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, r.rootNode.height * r.options.MAX_ENTRIES)
-	r.queuePool = newSearchQueuePool(2, r.rootNode.height * r.options.MAX_ENTRIES)
+	r.build(points, isSorted)
+	rootNode := r.nodes[0] // TODO handle nil?
+	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNode.height * r.options.MAX_ENTRIES)
+	r.queuePool = newSearchQueuePool(2, rootNode.height * r.options.MAX_ENTRIES)
 	// Max proportion when not checking max distance 2.3111111111111113
 	// Max proportion checking max distance 39 6 9 0.7222222222222222
 	return r
 }
 
-func (r *SimpleRTree) build(points FlatPoints, isSorted bool) *Node {
+func (r *SimpleRTree) build(points FlatPoints, isSorted bool) {
 
 	r.points = points
-	rootNode := &Node{
+	r.nodes = make([]Node, 0, computeSize(points.Len()))
+	r.nodes = append(r.nodes, Node{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
 		start: 0,
 		end: points.Len(),
-	}
+	})
 
-	r.buildNodeDownwards(rootNode, true, isSorted)
-	rootNode.computeBBoxDownwards()
-	return rootNode
+
+	r.buildNodeDownwards(0, isSorted)
+	r.computeBBoxDownwards(0)
+	return
 }
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(n *Node, isCalledAsync, isSorted bool) {
+func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, isSorted bool) {
+	n := &r.nodes[nodeIndex]
 	N := n.end - n.start
 	// target number of root entries to maximize storage utilization
 	var M float64
@@ -198,6 +204,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, isCalledAsync, isSorted bool) 
 		right2 := minInt(i+N1, N)
 		sortY := ySorter{n: n, points: r.points, start: n.start + i, end: n.start + right2, bucketSize: N2}
 		sortY.Sort()
+		childIndex := len(r.nodes)
 		for j := i; j < right2; j += N2 {
 			right3 := minInt(j+N2, right2)
 			child := Node{
@@ -205,31 +212,30 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, isCalledAsync, isSorted bool) 
 				end: n.start + right3,
 				height:     n.height - 1,
 			}
-			n.children = append(n.children, &child)
-			// remove reference to interface, we only need it for points
-
+			r.nodes = append(r.nodes, child)
+			n.children = append(n.children, childIndex)
+			childIndex++
 		}
 	}
 	// compute children
-	for _, c := range n.children {
-		// Only launch a goroutine for big height. we don't want a goroutine to sort 4 points
-		r.buildNodeDownwards(c, true, false)
+	for _, childIndex := range n.children {
+		r.buildNodeDownwards(childIndex, false)
 	}
 }
 
 
 
 // Compute bbox of all tree all the way to the bottom
-func (n *Node) computeBBoxDownwards() BBox {
-
+func (r *SimpleRTree) computeBBoxDownwards(nodeIndex int) BBox {
+	n := &r.nodes[nodeIndex]
 	var bbox BBox
 	if n.isLeaf {
 		bbox = n.BBox
 	} else {
-		bbox = n.children[0].computeBBoxDownwards()
+		bbox = r.computeBBoxDownwards(n.children[0])
 
 		for i := 1; i < len(n.children); i++ {
-			bbox = bbox.extend(n.children[i].computeBBoxDownwards())
+			bbox = bbox.extend(r.computeBBoxDownwards(n.children[i]))
 		}
 	}
 	n.BBox = bbox
@@ -239,13 +245,13 @@ func (n *Node) computeBBoxDownwards() BBox {
 
 func (r *SimpleRTree) setLeafNode(n * Node) {
 	// Here we follow original rbush implementation.
- 	children := make([]*Node, n.end - n.start)
+ 	children := make([]int, n.end - n.start)
  	n.children = children
 	n.height = 1
-
+	childIndex := len(r.nodes)
 	for i := 0; i < n.end - n.start; i++ {
 		x1, y1 := r.points.GetPointAt(n.start + i)
-		children[i] = &Node{
+		child := Node{
 			start: n.start + i,
 			end: n.start + i +1,
 			isLeaf: true,
@@ -256,15 +262,19 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 				MaxY: y1,
 			},
 		}
+		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
+		r.nodes = append(r.nodes, child)
+		children[i] = childIndex
+		childIndex++
 	}
 }
 
 func (r *SimpleRTree) toJSON () {
 	text := make([]string, 0)
-	fmt.Println(strings.Join(r.rootNode.toJSON(text), ","))
+	fmt.Println(strings.Join(r.toJSONAcc(0, text), ","))
 }
 
-func (n *Node) toJSON (text []string) []string {
+func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
 	t, err := template.New("foo").Parse(`{
 	       "type": "Feature",
 	       "properties": {},
@@ -300,12 +310,13 @@ func (n *Node) toJSON (text []string) []string {
 		log.Fatal(err)
 	}
 	var tpl bytes.Buffer
+	n := &r.nodes[nodeIndex]
 	if err := t.Execute(&tpl, n); err != nil {
 		log.Fatal(err)
 	}
 	text = append(text, tpl.String())
 	for _, c := range(n.children) {
-		text = c.toJSON(text)
+		text = r.toJSONAcc(c, text)
 	}
 	return text
 }
@@ -369,4 +380,8 @@ func sortFloats (x1, x2 float64) (x3, x4 float64) {
 		return x2, x1
 	}
 	return x1, x2
+}
+
+func computeSize (n int) (size int) {
+	return 2 * n
 }

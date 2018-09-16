@@ -73,6 +73,30 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 
 }
 
+func TestComputeSize (t *testing.T) {
+	testCases := []struct{
+		len int
+		expected int
+	}{
+		{
+			10,
+			13,
+		},
+		{
+			1000,
+			1129,
+		},
+		{
+			11250,
+			11277,
+		},
+	}
+	for _, tc := range(testCases) {
+		final := computeSize(tc.len)
+		assert.True(t, tc.expected < final)
+	}
+}
+
 
 func BenchmarkSimpleRTree_Load(b *testing.B) {
 	benchmarks := []struct{
