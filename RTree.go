@@ -16,7 +16,6 @@ type Interface interface {
 	Swap(i, j int)                            // Swap elements with indexes i and j
 }
 
-const MAX_POSSIBLE_ENTRIES = 9
 
 type Options struct {
 	MAX_ENTRIES int
@@ -32,8 +31,7 @@ type SimpleRTree struct {
 	queuePool * searchQueuePool
 }
 type Node struct {
-	children   [MAX_POSSIBLE_ENTRIES]int
-	childrenLength int
+	children   []int
 	height     int
 	isLeaf     bool
 	start, end int // index in the underlying array
@@ -49,9 +47,6 @@ func New() *SimpleRTree {
 }
 
 func NewWithOptions(options Options) *SimpleRTree {
-	if options.MAX_ENTRIES > MAX_POSSIBLE_ENTRIES {
-		log.Fatal("Maximum value for max entries is: ", MAX_POSSIBLE_ENTRIES)
-	}
 	r := &SimpleRTree{
 		options: options,
 	}
@@ -109,8 +104,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			distanceLowerBound = currentDistance
 			minItem = item
 		} else {
-			for i := 0; i < item.node.childrenLength; i++ {
-				nodeIndex := item.node.children[i]
+			for _, nodeIndex := range(item.node.children) {
 				n := &r.nodes[nodeIndex]
 				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
@@ -179,31 +173,21 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) {
 	})
 
 
-	i := 0
-	nodesRemaining := 1
-	// build while there are non leaf nodes remaining
-	for nodesRemaining > 0 {
-		nodesRemaining += r.buildNodeDownwards(i, isSorted)
-		isSorted = false // Only first one might be sorted
-		i++
-	}
+	r.buildNodeDownwards(0, isSorted)
 	r.computeBBoxDownwards(0)
 	return
 }
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, isSorted bool) (deltaNodes int) {
+func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, isSorted bool) {
 	n := &r.nodes[nodeIndex]
-	if n.isLeaf {
-		return 0
-	}
 	N := n.end - n.start
 	// target number of root entries to maximize storage utilization
 	var M float64
 	if N <= r.options.MAX_ENTRIES { // Leaf node
 		r.setLeafNode(n)
-		return -1 // one node processed
+		return
 	}
 
 	M = math.Ceil(float64(N) / float64(math.Pow(float64(r.options.MAX_ENTRIES), float64(n.height-1))))
@@ -229,12 +213,14 @@ func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, isSorted bool) (deltaNod
 				height:     n.height - 1,
 			}
 			r.nodes = append(r.nodes, child)
-			n.childrenLength++
-			n.children[n.childrenLength - 1] = childIndex
+			n.children = append(n.children, childIndex)
 			childIndex++
 		}
 	}
-	return n.childrenLength - 1 // one node processed n.children added
+	// compute children
+	for _, childIndex := range n.children {
+		r.buildNodeDownwards(childIndex, false)
+	}
 }
 
 
@@ -248,7 +234,7 @@ func (r *SimpleRTree) computeBBoxDownwards(nodeIndex int) BBox {
 	} else {
 		bbox = r.computeBBoxDownwards(n.children[0])
 
-		for i := 1; i < n.childrenLength; i++ {
+		for i := 1; i < len(n.children); i++ {
 			bbox = bbox.extend(r.computeBBoxDownwards(n.children[i]))
 		}
 	}
@@ -259,7 +245,8 @@ func (r *SimpleRTree) computeBBoxDownwards(nodeIndex int) BBox {
 
 func (r *SimpleRTree) setLeafNode(n * Node) {
 	// Here we follow original rbush implementation.
-	n.childrenLength = n.end - n.start
+ 	children := make([]int, n.end - n.start)
+ 	n.children = children
 	n.height = 1
 	childIndex := len(r.nodes)
 	for i := 0; i < n.end - n.start; i++ {
@@ -277,7 +264,7 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 		}
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
-		n.children[i] = childIndex
+		children[i] = childIndex
 		childIndex++
 	}
 }
@@ -328,8 +315,7 @@ func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
 		log.Fatal(err)
 	}
 	text = append(text, tpl.String())
-	for i := 0; i < n.childrenLength; i++ {
-		c := n.children[i]
+	for _, c := range(n.children) {
 		text = r.toJSONAcc(c, text)
 	}
 	return text
