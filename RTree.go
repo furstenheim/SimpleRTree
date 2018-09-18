@@ -30,7 +30,7 @@ type SimpleRTree struct {
 	queuePool * searchQueuePool
 }
 type Node struct {
-	children   []*Node
+	children   []int
 	height     int
 	isLeaf     bool
 	start, end int // index in the underlying array
@@ -103,7 +103,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			distanceLowerBound = currentDistance
 			minItem = item
 		} else {
-			for _, n := range(item.node.children) {
+			for _, nodeIndex := range(item.node.children) {
+				n := &r.nodes[nodeIndex]
 				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
 					childItem := queueItemPool.take()
@@ -171,14 +172,15 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) {
 	})
 
 
-	r.buildNodeDownwards(&r.nodes[0], isSorted)
-	r.computeBBoxDownwards(&r.nodes[0])
+	r.buildNodeDownwards(0, isSorted)
+	r.computeBBoxDownwards(0)
 	return
 }
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(n *Node, isSorted bool) {
+func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, isSorted bool) {
+	n := &r.nodes[nodeIndex]
 	N := n.end - n.start
 	// target number of root entries to maximize storage utilization
 	var M float64
@@ -210,28 +212,29 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, isSorted bool) {
 				height:     n.height - 1,
 			}
 			r.nodes = append(r.nodes, child)
-			n.children = append(n.children, &r.nodes[childIndex])
+			n.children = append(n.children, childIndex)
 			childIndex++
 		}
 	}
 	// compute children
-	for _, c := range n.children {
-		r.buildNodeDownwards(c, false)
+	for _, childIndex := range n.children {
+		r.buildNodeDownwards(childIndex, false)
 	}
 }
 
 
 
 // Compute bbox of all tree all the way to the bottom
-func (r *SimpleRTree) computeBBoxDownwards(n * Node) BBox {
+func (r *SimpleRTree) computeBBoxDownwards(nodeIndex int) BBox {
+	n := &r.nodes[nodeIndex]
 	var bbox BBox
 	if n.isLeaf {
 		bbox = n.BBox
 	} else {
 		bbox = r.computeBBoxDownwards(n.children[0])
 
-		for _ , c := range(n.children) {
-			bbox = bbox.extend(r.computeBBoxDownwards(c))
+		for i := 1; i < len(n.children); i++ {
+			bbox = bbox.extend(r.computeBBoxDownwards(n.children[i]))
 		}
 	}
 	n.BBox = bbox
@@ -241,7 +244,7 @@ func (r *SimpleRTree) computeBBoxDownwards(n * Node) BBox {
 
 func (r *SimpleRTree) setLeafNode(n * Node) {
 	// Here we follow original rbush implementation.
-	children := make([]*Node, n.end - n.start)
+ 	children := make([]int, n.end - n.start)
  	n.children = children
 	n.height = 1
 	childIndex := len(r.nodes)
@@ -260,17 +263,17 @@ func (r *SimpleRTree) setLeafNode(n * Node) {
 		}
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
-		children[i] = &r.nodes[childIndex]
+		children[i] = childIndex
 		childIndex++
 	}
 }
 
 func (r *SimpleRTree) toJSON () {
 	text := make([]string, 0)
-	fmt.Println(strings.Join(r.toJSONAcc(&r.nodes[0], text), ","))
+	fmt.Println(strings.Join(r.toJSONAcc(0, text), ","))
 }
 
-func (r *SimpleRTree) toJSONAcc (n *Node, text []string) []string {
+func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
 	t, err := template.New("foo").Parse(`{
 	       "type": "Feature",
 	       "properties": {},
@@ -306,6 +309,7 @@ func (r *SimpleRTree) toJSONAcc (n *Node, text []string) []string {
 		log.Fatal(err)
 	}
 	var tpl bytes.Buffer
+	n := &r.nodes[nodeIndex]
 	if err := t.Execute(&tpl, n); err != nil {
 		log.Fatal(err)
 	}
