@@ -321,7 +321,6 @@ func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
 }
 
 func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
-	// TODO try reuse array
 	// TODO try simd
 	if (n.isLeaf) {
 	       // node is point, there is only one distance
@@ -334,20 +333,27 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	sideX := (n.BBox.MaxX - n.BBox.MinX) * (n.BBox.MaxX - n.BBox.MinX)
 	sideY := (n.BBox.MaxY - n.BBox.MinY) * (n.BBox.MaxY - n.BBox.MinY)
 
-	// fmt.Println(sides)
+	// Code is a bit cryptic but it is equivalent to the commented code which is clearer
+	if (maxx >= sideX) {
+		mind += minx
+	}
+	if (maxy >= sideY) {
+		mind += miny
+	}
+	/*
 	// point is inside because max distances in both axis are smaller than sides of the square
 	if (maxx < sideX && maxy < sideY) {
 		// do nothing mind is already 0
-	} else if (maxx < sideX) {
-		// point is in vertical stripe. Hence distance to the bbox is maximum vertical distance
+	} else if (maxx < sideX && maxy >= sideY) {
+		// point is in vertical stripe. Hence distance to the bbox is minimum vertical distance
 		mind = miny
-	} else if (maxy < sideY) {
+	} else if (maxx >= sideX && maxy < sideY) {
 		// point is in horizontal stripe, Hence distance is least distance to one of the sides (vertical distance is 0
 		mind = minx
-	} else {
+	} else if (maxx >= sideX && maxy >= sideY){
 		// point is not inside bbox. closest vertex is that one with closest x and y
 		mind = minx + miny
-	}
+	}*/
 	maxd = maxx + maxy
 	return
 }
