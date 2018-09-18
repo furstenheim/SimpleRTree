@@ -3,7 +3,6 @@ package SimpleRTree
 import (
 	"log"
 	"math"
-	"container/heap"
 	"text/template"
 	"bytes"
 	"fmt"
@@ -75,7 +74,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	distanceUpperBound := d
 	// if bbox is further from this bound then we don't explore it
 	sq := r.queuePool.take()
-	heap.Init(sq)
+	sq.Init()
 
 	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
@@ -88,11 +87,11 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 		item := queueItemPool.take()
 		item.node = rootNode
 		item.distance = mind
-		heap.Push(sq, item)
+		sq.Push(item)
 	}
 
 	for sq.Len() > 0 {
-		item := heap.Pop(sq).(*searchQueueItem)
+		item := sq.Pop()
 		currentDistance := item.distance
 		if (minItem != nil && currentDistance > distanceLowerBound) {
 			queueItemPool.giveBack(item);
@@ -110,7 +109,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 					childItem := queueItemPool.take()
 					childItem.node = n
 					childItem.distance = mind
-					heap.Push(sq, childItem)
+					sq.Push(childItem)
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -124,7 +123,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 
 	// Return all missing items. This could probably be async
 	for sq.Len() > 0 {
-		item := heap.Pop(sq).(*searchQueueItem)
+		item := sq.Pop()
 		queueItemPool.giveBack(item)
 	}
 

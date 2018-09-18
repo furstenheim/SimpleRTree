@@ -17,11 +17,13 @@ The library exposes only two methods. One to load and one to find nearest point
 
 These are the benchmarks nearest point once the index is tree. There are 0 allocations in the heap
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 2000000	       702 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	  500000	      3005 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  300000	      4794 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  200000	      7572 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  200000	      7735 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       580 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1875 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  500000	      2708 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  300000	      4085 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  300000	      4308 ns/op
+    BenchmarkSimpleRTree_FindNearestPointMemory/1000-4         	 1000000	      1992 ns/op
+
 
 
 
