@@ -15,6 +15,8 @@ type Interface interface {
 	Swap(i, j int)                            // Swap elements with indexes i and j
 }
 
+const MAX_POSSIBLE_SIZE = 9
+
 
 type Options struct {
 	MAX_ENTRIES int
@@ -30,11 +32,15 @@ type SimpleRTree struct {
 	queuePool * searchQueuePool
 }
 type Node struct {
-	children   []int
-	height     int
 	isLeaf     bool
-	start, end int // index in the underlying array
 	BBox       BBox
+	children   []int
+}
+
+// Structure used to constructing the ndoe
+type nodeConstruct struct {
+	height     int
+	start, end int // index in the underlying array
 }
 
 // Create an RTree index from an array of points
@@ -48,6 +54,9 @@ func New() *SimpleRTree {
 func NewWithOptions(options Options) *SimpleRTree {
 	r := &SimpleRTree{
 		options: options,
+	}
+	if options.MAX_ENTRIES > MAX_POSSIBLE_SIZE {
+		panic(fmt.Sprintf("Cannot exceed %d for size", MAX_POSSIBLE_SIZE))
 	}
 	return r
 }
@@ -152,73 +161,78 @@ func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
 	}
 	r.built = true
 
-	r.build(points, isSorted)
-	rootNode := r.nodes[0] // TODO handle nil?
-	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNode.height * r.options.MAX_ENTRIES)
-	r.queuePool = newSearchQueuePool(2, rootNode.height * r.options.MAX_ENTRIES)
+	rootNodeConstruct := r.build(points, isSorted)
+	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNodeConstruct.height * r.options.MAX_ENTRIES)
+	r.queuePool = newSearchQueuePool(2, rootNodeConstruct.height * r.options.MAX_ENTRIES)
 	// Max proportion when not checking max distance 2.3111111111111113
 	// Max proportion checking max distance 39 6 9 0.7222222222222222
 	return r
 }
 
-func (r *SimpleRTree) build(points FlatPoints, isSorted bool) {
-
+func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	r.points = points
 	r.nodes = make([]Node, 0, computeSize(points.Len()))
-	r.nodes = append(r.nodes, Node{
+	r.nodes = append(r.nodes, Node{})
+	rootNodeConstruct := nodeConstruct{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
 		start: 0,
 		end: points.Len(),
-	})
+	}
 
-
-	r.buildNodeDownwards(0, isSorted)
+	r.buildNodeDownwards(0, rootNodeConstruct, isSorted)
 	r.computeBBoxDownwards(0)
-	return
+	return rootNodeConstruct
 }
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, isSorted bool) {
+func (r *SimpleRTree) buildNodeDownwards(nodeIndex int, nc nodeConstruct, isSorted bool) {
 	n := &r.nodes[nodeIndex]
-	N := n.end - n.start
+	N := nc.end - nc.start
 	// target number of root entries to maximize storage utilization
 	var M float64
 	if N <= r.options.MAX_ENTRIES { // Leaf node
-		r.setLeafNode(n)
+		r.setLeafNode(n, nc)
 		return
 	}
 
-	M = math.Ceil(float64(N) / float64(math.Pow(float64(r.options.MAX_ENTRIES), float64(n.height-1))))
+	M = math.Ceil(float64(N) / float64(math.Pow(float64(r.options.MAX_ENTRIES), float64(nc.height-1))))
 
 	N2 := int(math.Ceil(float64(N) / M))
 	N1 := N2 * int(math.Ceil(math.Sqrt(M)))
 
 	// parent node might already be sorted. In that case we avoid double computation
 	if (!isSorted) {
-		sortX := xSorter{n: n, points: r.points, start: n.start, end: n.end, bucketSize:  N1}
+		sortX := xSorter{n: n, points: r.points, start: nc.start, end: nc.end, bucketSize:  N1}
 		sortX.Sort()
 	}
+	nodeConstructs := [MAX_POSSIBLE_SIZE]nodeConstruct{}
+	nodeConstructIndex := 0
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
-		sortY := ySorter{n: n, points: r.points, start: n.start + i, end: n.start + right2, bucketSize: N2}
+		sortY := ySorter{n: n, points: r.points, start: nc.start + i, end: nc.start + right2, bucketSize: N2}
 		sortY.Sort()
 		childIndex := len(r.nodes)
 		for j := i; j < right2; j += N2 {
 			right3 := minInt(j+N2, right2)
 			child := Node{
-				start: n.start + j,
-				end: n.start + right3,
-				height:     n.height - 1,
+			}
+			childC := nodeConstruct{
+				start: nc.start + j,
+				end: nc.start + right3,
+				height:     nc.height - 1,
 			}
 			r.nodes = append(r.nodes, child)
+			// r.nodeConstructs = append(r.nodeConstructs, childC)
 			n.children = append(n.children, childIndex)
+			nodeConstructs[nodeConstructIndex] = childC
 			childIndex++
+			nodeConstructIndex++
 		}
 	}
 	// compute children
-	for _, childIndex := range n.children {
-		r.buildNodeDownwards(childIndex, false)
+	for i, childIndex := range n.children {
+		r.buildNodeDownwards(childIndex, nodeConstructs[i], false)
 	}
 }
 
@@ -242,17 +256,14 @@ func (r *SimpleRTree) computeBBoxDownwards(nodeIndex int) BBox {
 }
 
 
-func (r *SimpleRTree) setLeafNode(n * Node) {
+func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 	// Here we follow original rbush implementation.
- 	children := make([]int, n.end - n.start)
+ 	children := make([]int, nc.end - nc.start)
  	n.children = children
-	n.height = 1
 	childIndex := len(r.nodes)
-	for i := 0; i < n.end - n.start; i++ {
-		x1, y1 := r.points.GetPointAt(n.start + i)
+	for i := 0; i < nc.end - nc.start; i++ {
+		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
-			start: n.start + i,
-			end: n.start + i +1,
 			isLeaf: true,
 			BBox: BBox{
 				MinX: x1,
