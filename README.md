@@ -17,11 +17,11 @@ The library exposes only two methods. One to load and one to find nearest point
 
 These are the benchmarks nearest point once the index is tree. There are 0 allocations in the heap
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       549 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1812 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  500000	      2909 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  500000	      3983 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  300000	      4250 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       571 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1894 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  500000	      2723 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  300000	      3796 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  300000	      3943 ns/op
 
 
 
@@ -30,19 +30,21 @@ These are the benchmarks nearest point once the index is tree. There are 0 alloc
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  200000	      9070 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	    3000	    711563 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     200	   6888222 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      20	  55542970 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      10	 105043234 ns/op
+    BenchmarkSimpleRTree_Load/10-4      	  300000	      9457 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	    3000	    668477 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     200	   9033928 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      20	  72178425 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      10	 109572279 ns/op
+
 
 
 ### Benchmark Load mem
 
-    BenchmarkSimpleRTree_Load/10-4      	  200000	      9470 ns/op	    3040 B/op	      57 allocs/op
-    BenchmarkSimpleRTree_Load/1000-4    	    3000	    715728 ns/op	  149760 B/op	     377 allocs/op
-    BenchmarkSimpleRTree_Load/10000-4   	     200	   7487503 ns/op	 1467229 B/op	    3083 allocs/op
-    BenchmarkSimpleRTree_Load/100000-4  	      20	  62603439 ns/op	14587572 B/op	   30357 allocs/op
-    BenchmarkSimpleRTree_Load/200000-4  	      10	 111886749 ns/op	29163014 B/op	   60590 allocs/op
+    BenchmarkSimpleRTree_Load/10-4      	  200000	      8695 ns/op	    2792 B/op	      53 allocs/op
+    BenchmarkSimpleRTree_Load/1000-4    	    3000	    748523 ns/op	  122536 B/op	     199 allocs/op
+    BenchmarkSimpleRTree_Load/10000-4   	     200	   6377959 ns/op	 1180104 B/op	    1239 allocs/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  79146203 ns/op	11762216 B/op	   11659 allocs/op
+    BenchmarkSimpleRTree_Load/200000-4  	      10	 123593821 ns/op	23512296 B/op	   23195 allocs/op
+
 
 
