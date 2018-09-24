@@ -1,7 +1,7 @@
 package SimpleRTree
 
 type searchQueueItem struct {
-	node *Node
+	nodeIndex int
 	distance float64
 }
 
