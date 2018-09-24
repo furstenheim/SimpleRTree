@@ -33,8 +33,8 @@ type SimpleRTree struct {
 }
 type Node struct {
 	isLeaf     bool
-	BBox       BBox
 	firstChildIndex, endChildren int
+	MinX, MinY, MaxX, MaxY float64
 }
 
 // Structure used to constructing the ndoe
@@ -144,8 +144,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	if (minItem == nil) {
 		return
 	}
-	x1 = minItem.node.BBox.MaxX
-	y1 = minItem.node.BBox.MaxY
+	x1 = minItem.node.MaxX
+	y1 = minItem.node.MaxY
 	// Only do sqrt at the end
 	d1 = math.Sqrt(distanceUpperBound)
 	found = true
@@ -241,15 +241,19 @@ func (r *SimpleRTree) computeBBoxDownwards(nodeIndex int) BBox {
 	n := &r.nodes[nodeIndex]
 	var bbox BBox
 	if n.isLeaf {
-		bbox = n.BBox
+		return BBox{MinX: n.MinX, MinY: n.MinY, MaxX: n.MaxX, MaxY: n.MaxY}
 	} else {
 		bbox = r.computeBBoxDownwards(n.firstChildIndex)
 
 		for i := n.firstChildIndex + 1; i < n.endChildren; i++ {
 			bbox = bbox.extend(r.computeBBoxDownwards(i))
 		}
+
 	}
-	n.BBox = bbox
+	n.MinX = bbox.MinX
+	n.MinY = bbox.MinY
+	n.MaxX = bbox.MaxX
+	n.MaxY = bbox.MaxY
 	return bbox
 }
 
@@ -261,13 +265,11 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
 			isLeaf: true,
-			BBox: BBox{
-				MinX: x1,
-				MaxX: x1,
-				MinY: y1,
-				MaxY: y1,
-			},
-		}
+			MinX: x1,
+			MaxX: x1,
+			MinY: y1,
+			MaxY: y1,
+	}
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
@@ -330,14 +332,14 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	// TODO try simd
 	if (n.isLeaf) {
 	       // node is point, there is only one distance
-	       d := (x - n.BBox.MinX) * (x - n.BBox.MinX)  + (y - n.BBox.MinY) * (y - n.BBox.MinY)
+	       d := (x - n.MinX) * (x - n.MinX)  + (y - n.MinY) * (y - n.MinY)
 	       return d, d
 	}
-	minx, maxx := sortFloats((x - n.BBox.MinX) * (x - n.BBox.MinX), (x - n.BBox.MaxX) * (x - n.BBox.MaxX))
-	miny, maxy := sortFloats((y - n.BBox.MinY) * (y - n.BBox.MinY), (y - n.BBox.MaxY) * (y - n.BBox.MaxY))
+	minx, maxx := sortFloats((x - n.MinX) * (x - n.MinX), (x - n.MaxX) * (x - n.MaxX))
+	miny, maxy := sortFloats((y - n.MinY) * (y - n.MinY), (y - n.MaxY) * (y - n.MaxY))
 
-	sideX := (n.BBox.MaxX - n.BBox.MinX) * (n.BBox.MaxX - n.BBox.MinX)
-	sideY := (n.BBox.MaxY - n.BBox.MinY) * (n.BBox.MaxY - n.BBox.MinY)
+	sideX := (n.MaxX - n.MinX) * (n.MaxX - n.MinX)
+	sideY := (n.MaxY - n.MinY) * (n.MaxY - n.MinY)
 
 	// Code is a bit cryptic but it is equivalent to the commented code which is clearer
 	if (maxx >= sideX) {
