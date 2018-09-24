@@ -30,12 +30,11 @@ These are the benchmarks nearest point once the index is tree. There are 0 alloc
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  300000	      6020 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	    3000	    442769 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     500	   3809178 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      20	  58292293 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  82287931 ns/op
-
+    BenchmarkSimpleRTree_Load/10-4      	  300000	      5258 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	    5000	    351782 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     300	   4652599 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  55357465 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  79127115 ns/op
 
 
 
