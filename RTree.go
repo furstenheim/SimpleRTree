@@ -78,10 +78,7 @@ func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found
 	return r.findNearestPointWithin(x, y, math.Inf(1))
 }
 func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float64, found bool){
-	var minItem, item, childItem *searchQueueItem
-	var iterationNode, n Node
-	var mind, maxd, currentDistance float64
-	var nodeIndex int
+	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	distanceUpperBound := d
 	// if bbox is further from this bound then we don't explore it
@@ -90,38 +87,37 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 
 	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
-	mind, maxd = rootNode.computeDistances(x, y)
+	mind, maxd := rootNode.computeDistances(x, y)
 	if (maxd < distanceUpperBound) {
 		distanceUpperBound = maxd
 	}
 	// Only start search if it is within bound
 	if (mind < distanceUpperBound) {
 		item := queueItemPool.take()
-		item.nodeIndex = 0
+		item.node = rootNode
 		item.distance = mind
 		sq.Push(item)
 	}
 
 	for sq.Len() > 0 {
-		item = sq.Pop()
-		currentDistance = item.distance
+		item := sq.Pop()
+		currentDistance := item.distance
 		if (minItem != nil && currentDistance > distanceLowerBound) {
 			queueItemPool.giveBack(item);
 			break
 		}
-		iterationNode = r.nodes[item.nodeIndex]
 
-		if (iterationNode.isLeaf) {
+		if (item.node.isLeaf) {
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
 			minItem = item
 		} else {
-			for nodeIndex = iterationNode.firstChildIndex; nodeIndex < iterationNode.endChildren; nodeIndex++ {
-				n = r.nodes[nodeIndex]
-				mind, maxd = n.computeDistances(x, y)
+			for nodeIndex := item.node.firstChildIndex; nodeIndex < item.node.endChildren; nodeIndex++ {
+				n := &r.nodes[nodeIndex]
+				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
-					childItem = queueItemPool.take()
-					childItem.nodeIndex = nodeIndex
+					childItem := queueItemPool.take()
+					childItem.node = n
 					childItem.distance = mind
 					sq.Push(childItem)
 				}
@@ -148,8 +144,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	if (minItem == nil) {
 		return
 	}
-	x1 = r.nodes[minItem.nodeIndex].BBox.MaxX
-	y1 = r.nodes[minItem.nodeIndex].BBox.MaxY
+	x1 = minItem.node.BBox.MaxX
+	y1 = minItem.node.BBox.MaxY
 	// Only do sqrt at the end
 	d1 = math.Sqrt(distanceUpperBound)
 	found = true
@@ -330,7 +326,7 @@ func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
 	return text
 }
 
-func (n Node) computeDistances (x, y float64) (mind, maxd float64) {
+func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	// TODO try simd
 	if (n.isLeaf) {
 	       // node is point, there is only one distance
