@@ -35,8 +35,8 @@ type SimpleRTree struct {
 }
 type Node struct {
 	isLeaf     bool
+	nChildren int8
 	firstChild *Node
-	nChildren int
 	MinX, MinY, MaxX, MaxY float64
 }
 
@@ -116,7 +116,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			minItem = item
 		} else {
 			f := unsafe.Pointer(item.node.firstChild)
-			for i := 0; i < item.node.nChildren; i++ {
+			var i int8
+			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
 				mind, maxd := n.computeDistances(x, y)
 				if (mind <= distanceUpperBound) {
@@ -211,7 +212,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 		sortX.Sort()
 	}
 	nodeConstructs := [MAX_POSSIBLE_SIZE]nodeConstruct{}
-	nodeConstructIndex := 0
+	var nodeConstructIndex int8
 	firstChildIndex := len(r.nodes)
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
@@ -234,9 +235,10 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	n.firstChild = &r.nodes[firstChildIndex]
 	n.nChildren = nodeConstructIndex
 	// compute children
-	for i:= 0; i < nodeConstructIndex; i++ {
+	var i int8
+	for i= 0; i < nodeConstructIndex; i++ {
 		// TODO check why using (*Node)f here does not work
-		r.buildNodeDownwards(&r.nodes[firstChildIndex + i], nodeConstructs[i], false)
+		r.buildNodeDownwards(&r.nodes[firstChildIndex + int(i)], nodeConstructs[i], false)
 	}
 }
 
@@ -251,7 +253,8 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 		n1 := n.firstChild
 		bbox = r.computeBBoxDownwards(n1)
 		f := unsafe.Pointer(n1)
-		for i := 1; i < n.nChildren; i++ {
+		var i int8
+		for i = 1; i < n.nChildren; i++ {
 			f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
 			bbox = bbox.extend(r.computeBBoxDownwards((*Node)(f)))
 		}
@@ -281,7 +284,7 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 		r.nodes = append(r.nodes, child)
 	}
 	n.firstChild = &r.nodes[firstChildIndex]
-	n.nChildren = nc.end - nc.start
+	n.nChildren = int8(nc.end - nc.start)
 }
 
 func (r *SimpleRTree) toJSON () {
@@ -330,7 +333,8 @@ func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
 	}
 	text = append(text, tpl.String())
 	f := unsafe.Pointer(n.firstChild)
-	for i := 0; i < n.nChildren; i++ {
+	var i int8
+	for i = 0; i < n.nChildren; i++ {
 		cn := (*Node)(f)
 		text = r.toJSONAcc(cn, text)
 		f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
