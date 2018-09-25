@@ -35,7 +35,8 @@ type SimpleRTree struct {
 }
 type Node struct {
 	isLeaf     bool
-	firstChildIndex, nChildren int
+	firstChild *Node
+	nChildren int
 	MinX, MinY, MaxX, MaxY float64
 }
 
@@ -114,7 +115,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			distanceLowerBound = currentDistance
 			minItem = item
 		} else {
-			f := unsafe.Pointer(&r.nodes[item.node.firstChildIndex])
+			f := unsafe.Pointer(item.node.firstChild)
 			for i := 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
 				mind, maxd := n.computeDistances(x, y)
@@ -211,7 +212,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	}
 	nodeConstructs := [MAX_POSSIBLE_SIZE]nodeConstruct{}
 	nodeConstructIndex := 0
-	n.firstChildIndex = len(r.nodes)
+	firstChildIndex := len(r.nodes)
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
 		sortY := ySorter{n: n, points: r.points, start: nc.start + i, end: nc.start + right2, bucketSize: N2}
@@ -230,12 +231,12 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 			nodeConstructIndex++
 		}
 	}
+	n.firstChild = &r.nodes[firstChildIndex]
 	n.nChildren = nodeConstructIndex
-	f := unsafe.Pointer(&r.nodes[n.firstChildIndex])
 	// compute children
 	for i:= 0; i < nodeConstructIndex; i++ {
-		r.buildNodeDownwards((*Node)(f), nodeConstructs[i], false)
-		f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+		// TODO check why using (*Node)f here does not work
+		r.buildNodeDownwards(&r.nodes[firstChildIndex + i], nodeConstructs[i], false)
 	}
 }
 
@@ -247,7 +248,7 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 	if n.isLeaf {
 		return BBox{MinX: n.MinX, MinY: n.MinY, MaxX: n.MaxX, MaxY: n.MaxY}
 	} else {
-		n1 := &r.nodes[n.firstChildIndex]
+		n1 := n.firstChild
 		bbox = r.computeBBoxDownwards(n1)
 		f := unsafe.Pointer(n1)
 		for i := 1; i < n.nChildren; i++ {
@@ -266,7 +267,7 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 
 func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 	// Here we follow original rbush implementation.
-	n.firstChildIndex = len(r.nodes)
+	firstChildIndex := len(r.nodes)
 	for i := 0; i < nc.end - nc.start; i++ {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
@@ -279,15 +280,16 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
-	n.nChildren = len(r.nodes) - n.firstChildIndex
+	n.firstChild = &r.nodes[firstChildIndex]
+	n.nChildren = nc.end - nc.start
 }
 
 func (r *SimpleRTree) toJSON () {
 	text := make([]string, 0)
-	fmt.Println(strings.Join(r.toJSONAcc(0, text), ","))
+	fmt.Println(strings.Join(r.toJSONAcc(&r.nodes[0], text), ","))
 }
 
-func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
+func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
 	t, err := template.New("foo").Parse(`{
 	       "type": "Feature",
 	       "properties": {},
@@ -323,13 +325,15 @@ func (r *SimpleRTree) toJSONAcc (nodeIndex int, text []string) []string {
 		log.Fatal(err)
 	}
 	var tpl bytes.Buffer
-	n := &r.nodes[nodeIndex]
 	if err := t.Execute(&tpl, n); err != nil {
 		log.Fatal(err)
 	}
 	text = append(text, tpl.String())
-	for i := n.firstChildIndex; i < n.firstChildIndex + n.nChildren; i++ {
-		text = r.toJSONAcc(i, text)
+	f := unsafe.Pointer(n.firstChild)
+	for i := 0; i < n.nChildren; i++ {
+		cn := (*Node)(f)
+		text = r.toJSONAcc(cn, text)
+		f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
 	}
 	return text
 }
