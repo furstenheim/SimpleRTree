@@ -29,21 +29,21 @@ These are the benchmarks nearest point once the index is tree. There are 0 alloc
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  300000	      4845 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	    5000	    368555 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     300	   3499078 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  46660575 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  70781101 ns/op
+    BenchmarkSimpleRTree_Load/10-4      	  500000	      3528 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	    5000	    399319 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     300	   3934939 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  37848676 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  67023164 ns/op
 
 
 
 ### Benchmark Load mem
 
-    BenchmarkSimpleRTree_Load/10-4      	  300000	      4739 ns/op	    2744 B/op	      53 allocs/op
-    BenchmarkSimpleRTree_Load/1000-4    	    5000	    410453 ns/op	  101176 B/op	      89 allocs/op
-    BenchmarkSimpleRTree_Load/10000-4   	     500	   4088533 ns/op	  970200 B/op	     107 allocs/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  37751179 ns/op	 9605112 B/op	     125 allocs/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  83310021 ns/op	19206136 B/op	     125 allocs/op
+    BenchmarkSimpleRTree_Load/10-4      	  500000	      3160 ns/op	    2744 B/op	      19 allocs/op
+    BenchmarkSimpleRTree_Load/1000-4    	    5000	    390040 ns/op	  101176 B/op	      19 allocs/op
+    BenchmarkSimpleRTree_Load/10000-4   	     500	   3635069 ns/op	  970296 B/op	      19 allocs/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  40846081 ns/op	 9605176 B/op	      19 allocs/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  80569543 ns/op	19206200 B/op	      19 allocs/op
 
 
 

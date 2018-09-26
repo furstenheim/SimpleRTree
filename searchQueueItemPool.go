@@ -5,9 +5,11 @@ package SimpleRTree
 type searchQueueItemPool []*searchQueueItem
 
 func newSearchQueuItemPool (total int) * searchQueueItemPool {
+	backingItemPool := make([]searchQueueItem, total)
 	p := make(searchQueueItemPool, total)
+
 	for i:= 0; i < total; i++ {
-		p[i] = new(searchQueueItem)
+		p[i] = &backingItemPool[i]
 	}
 	return &p
 }
