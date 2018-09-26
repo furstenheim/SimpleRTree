@@ -1,13 +1,25 @@
-### Simple RTree
+## Simple RTree
 
-This is a static RTree that only accepts points as input. The format of the points is a single array where each too coordinates represent a point
+Simple RTree is a blazingly fast and GC friendly RTree. It performs under 5 microseconds with 1 Million points for closest point queries
+(measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocation.
+Building the index requires 19 allocations independently of the number of points.
+
+To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
+It only accepts points, no bboxes or lines. It only accepts (for now) closest point queries.
+
+
+### Usage
+
+The format of the points is a single array where each too coordinates represent a point
 
     points := []float64{0.0, 0.0, 1.0, 1.0} // array of two points 0, 0 and 1, 1
 
 The library exposes only two methods. One to load and one to find nearest point
 
-    fp := FlatPoints(points)
-    r := New().Load(fp)
+    import "SimpleRTree"
+
+    fp := SimpleRTree.FlatPoints(points)
+    r := SimpleRTree.New().Load(fp)
     closestX, closestY, distance, found := r.FindNearestPoint(1.0, 2.0)
     // 1.0, 1.0, 1.0, true
 
