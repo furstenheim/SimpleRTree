@@ -32,6 +32,7 @@ type SimpleRTree struct {
 	// Store pool of pools so that between algorithms it uses a channel (thread safe) within one algorithm it uses array
 	queueItemPoolPool * searchQueueItemPoolPool
 	queuePool * searchQueuePool
+	sorterBuffer []int // floyd rivest requires a bucket, we allocate it once and reuse
 }
 type Node struct {
 	isLeaf     bool
@@ -167,6 +168,7 @@ func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
 	}
 	r.built = true
 
+	r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES + 1)
 	rootNodeConstruct := r.build(points, isSorted)
 	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNodeConstruct.height * r.options.MAX_ENTRIES)
 	r.queuePool = newSearchQueuePool(2, rootNodeConstruct.height * r.options.MAX_ENTRIES)
@@ -209,7 +211,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	// parent node might already be sorted. In that case we avoid double computation
 	if (!isSorted) {
 		sortX := xSorter{n: n, points: r.points, start: nc.start, end: nc.end, bucketSize:  N1}
-		sortX.Sort()
+		sortX.Sort(r.sorterBuffer)
 	}
 	nodeConstructs := [MAX_POSSIBLE_SIZE]nodeConstruct{}
 	var nodeConstructIndex int8
@@ -217,7 +219,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
 		sortY := ySorter{n: n, points: r.points, start: nc.start + i, end: nc.start + right2, bucketSize: N2}
-		sortY.Sort()
+		sortY.Sort(r.sorterBuffer)
 		for j := i; j < right2; j += N2 {
 			right3 := minInt(j+N2, right2)
 			child := Node{

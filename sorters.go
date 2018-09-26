@@ -21,8 +21,8 @@ func (s xSorter) Len() int {
 	return s.end - s.start
 }
 
-func (s xSorter) Sort() {
-	bucketsX(s, s.bucketSize)
+func (s xSorter) Sort(buffer []int) {
+	bucketsX(s, s.bucketSize, buffer)
 }
 
 type ySorter struct {
@@ -44,7 +44,7 @@ func (s ySorter) Swap(i, j int) {
 func (s ySorter) Len() int {
 	return s.end - s.start
 }
-func (s ySorter) Sort() {
+func (s ySorter) Sort(buffer []int) {
 	// we already do the shifting on the sort functions
-	bucketsY(s, s.bucketSize)
+	bucketsY(s, s.bucketSize, buffer)
 }

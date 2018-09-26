@@ -13,10 +13,13 @@ import (
 // max(s[0:5]) < min(s[5:10])
 // max(s[10: 15]) < min(s[15:20])
 // ...
-func bucketsY(slice ySorter, bucketSize int) {
+func bucketsY(slice ySorter, bucketSize int, buffer []int) {
 	left := 0
 	right := slice.Len() - 1
-	s := ySorterStack([]int{left, right})
+	stack := buffer[:0]
+	stack = append(stack, left)
+	stack = append(stack, right)
+	s := ySorterStack(stack)
 	var mid int
 	for len(s) > 0 {
 		s, right = s.pop()
@@ -27,6 +30,7 @@ func bucketsY(slice ySorter, bucketSize int) {
 		// + bucketSize - 1 is to do math ceil
 		mid = left + ((right - left + bucketSize - 1) / bucketSize / 2) * bucketSize
 		selectY(slice, mid, left, right)
+
 		s = s.push(left)
 		s = s.push(mid)
 		s = s.push(mid)
