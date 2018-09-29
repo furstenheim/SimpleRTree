@@ -364,7 +364,12 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	if (maxy >= sideY) {
 		mind += miny
 	}
+
+	// Given a bbox the distance will be bounded to the two intermediate corners
+	maxd = minFloat(maxx + miny, minx + maxy)
+	return
 	/*
+	How to compute mind
 	// point is inside because max distances in both axis are smaller than sides of the square
 	if (maxx < sideX && maxy < sideY) {
 		// do nothing mind is already 0
@@ -378,11 +383,15 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 		// point is not inside bbox. closest vertex is that one with closest x and y
 		mind = minx + miny
 	}*/
-	maxd = maxx + maxy
-	return
 }
 
 func minInt(a, b int) int {
+       if a < b {
+	       return a
+       }
+       return b
+}
+func minFloat(a, b float64) float64 {
        if a < b {
 	       return a
        }
