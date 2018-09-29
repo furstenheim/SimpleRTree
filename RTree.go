@@ -352,36 +352,37 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	       return d, d
 	}
 
-	var isNotMiddleY uint64
+	var isMiddleY float64
+	isMiddleY = 1
 	candidateMaxY1 := (y - n.MinY) * (y - n.MinY)
 	candidateMaxY2 := (y - n.MaxY) * (y - n.MaxY)
 
-	candidateMaxX1 := math.Float64bits((x - n.MinX) * (x - n.MinX))
-	candidateMaxX2 := math.Float64bits((x - n.MaxX) * (x - n.MaxX))
+	candidateMaxX1 := (x - n.MinX) * (x - n.MinX)
+	candidateMaxX2 := (x - n.MaxX) * (x - n.MaxX)
 
 	if y < n.MinY {
 		mind += (y - n.MinY) * (y - n.MinY)
-		isNotMiddleY = ^isNotMiddleY
+		isMiddleY = 0
 		candidateMaxY2 = (y - n.MinY) * (y - n.MinY)
 	}
 	if y > n.MaxY {
 		mind += (y - n.MaxY) * (y - n.MaxY)
-		isNotMiddleY = ^isNotMiddleY
+		isMiddleY = 0
 		candidateMaxY1 = (y - n.MaxY) * (y - n.MaxY)
 	}
 	if x < n.MinX {
 		mind += (x - n.MinX) * (x - n.MinX)
-		candidateMaxX2 &= isNotMiddleY
-		candidateMaxX2 += (^isNotMiddleY) & math.Float64bits((x - n.MinX) * (x - n.MinX))
+		candidateMaxX2 *= (1 - isMiddleY)
+		candidateMaxX2 += isMiddleY * (x - n.MinX) * (x - n.MinX)
 	}
 	if x > n.MaxX {
 		mind += (x - n.MaxX) * (x - n.MaxX)
-		candidateMaxX1 &= isNotMiddleY
-		candidateMaxX1 += (^isNotMiddleY) & math.Float64bits((x - n.MaxX) * (x - n.MaxX))
+		candidateMaxX1 *= (1 - isMiddleY)
+		candidateMaxX1 += isMiddleY * (x - n.MaxX) * (x - n.MaxX)
 	}
 
 
-	maxd = maxFloat(math.Float64frombits(candidateMaxX1) + candidateMaxY1, math.Float64frombits(candidateMaxX2) + candidateMaxY2)
+	maxd = maxFloat(candidateMaxX1 + candidateMaxY1, candidateMaxX2 + candidateMaxY2)
 
 	/*var candidateMax1, candidateMax2 float64
 	candidateMax1 += (flagY & LESS_MASK) * (y - n.MinY) * (y - n.MinY)
