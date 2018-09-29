@@ -188,6 +188,8 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	}
 
 	r.buildNodeDownwards(&r.nodes[0], rootNodeConstruct, isSorted)
+	// Not using avx it seems to be significantly slower
+	// r.avxComputeBBoxDownwards(&r.nodes[0])
 	r.computeBBoxDownwards(&r.nodes[0])
 	return rootNodeConstruct
 }
@@ -266,6 +268,29 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 	n.MinY = bbox.MinY
 	n.MaxX = bbox.MaxX
 	n.MaxY = bbox.MaxY
+	return bbox
+}
+
+// Compute bbox of all tree all the way to the bottom
+func (r *SimpleRTree) avxComputeBBoxDownwards(n *Node) AvxBBox {
+	var bbox AvxBBox
+	if n.isLeaf {
+		return newAvxBBox(n.MinX, n.MinY, n.MaxX, n.MaxY)
+	} else {
+		n1 := n.firstChild
+		bbox = r.avxComputeBBoxDownwards(n1)
+		f := unsafe.Pointer(n1)
+		var i int8
+		for i = 1; i < n.nChildren; i++ {
+			f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+			bbox = avxBBoxExtend(bbox, r.avxComputeBBoxDownwards((*Node)(f)))
+		}
+
+	}
+	n.MinX = bbox[AVX_BBOX_MIN_X]
+	n.MinY = bbox[AVX_BBOX_MIN_Y]
+	n.MaxX = -bbox[AVX_BBOX_NEG_MAX_X]
+	n.MaxY = -bbox[AVX_BBOX_NEG_MAX_Y]
 	return bbox
 }
 
