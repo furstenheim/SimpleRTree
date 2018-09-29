@@ -351,50 +351,7 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	       d := (x - n.MinX) * (x - n.MinX)  + (y - n.MinY) * (y - n.MinY)
 	       return d, d
 	}
-
-	var isMiddleY float64
-	isMiddleY = 1
-	candidateMaxY1 := (y - n.MinY) * (y - n.MinY)
-	candidateMaxY2 := (y - n.MaxY) * (y - n.MaxY)
-
-	candidateMaxX1 := (x - n.MinX) * (x - n.MinX)
-	candidateMaxX2 := (x - n.MaxX) * (x - n.MaxX)
-
-	if y < n.MinY {
-		mind += (y - n.MinY) * (y - n.MinY)
-		isMiddleY = 0
-		candidateMaxY2 = (y - n.MinY) * (y - n.MinY)
-	}
-	if y > n.MaxY {
-		mind += (y - n.MaxY) * (y - n.MaxY)
-		isMiddleY = 0
-		candidateMaxY1 = (y - n.MaxY) * (y - n.MaxY)
-	}
-	if x < n.MinX {
-		mind += (x - n.MinX) * (x - n.MinX)
-		candidateMaxX2 *= (1 - isMiddleY)
-		candidateMaxX2 += isMiddleY * (x - n.MinX) * (x - n.MinX)
-	}
-	if x > n.MaxX {
-		mind += (x - n.MaxX) * (x - n.MaxX)
-		candidateMaxX1 *= (1 - isMiddleY)
-		candidateMaxX1 += isMiddleY * (x - n.MaxX) * (x - n.MaxX)
-	}
-
-
-	maxd = maxFloat(candidateMaxX1 + candidateMaxY1, candidateMaxX2 + candidateMaxY2)
-
-	/*var candidateMax1, candidateMax2 float64
-	candidateMax1 += (flagY & LESS_MASK) * (y - n.MinY) * (y - n.MinY)
-	candidateMax1 += ((flagY & EQUAL_MASK) >> 1) * (y - n.MinY) * (y - n.MinY)
-	candidateMax1 += ((flagY & MORE_MASK) >> 2) * (y - n.MaxY) * (y - n.MaxY)
-
-	candidateMax2 += (flagY & LESS_MASK) * (y - n.MinY) * (y - n.MinY)
-	candidateMax2 += ((flagY & EQUAL_MASK) >> 1) * (y - n.MaxY) * (y - n.MaxY)
-	candidateMax2 += ((flagY & MORE_MASK) >> 2) * (y - n.MaxY) * (y - n.MaxY)
-	*/
-
-	/*minx, maxx := sortFloats((x - n.MinX) * (x - n.MinX), (x - n.MaxX) * (x - n.MaxX))
+	minx, maxx := sortFloats((x - n.MinX) * (x - n.MinX), (x - n.MaxX) * (x - n.MaxX))
 	miny, maxy := sortFloats((y - n.MinY) * (y - n.MinY), (y - n.MaxY) * (y - n.MaxY))
 
 	sideX := (n.MaxX - n.MinX) * (n.MaxX - n.MinX)
@@ -410,7 +367,6 @@ func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 
 	// Given a bbox the distance will be bounded to the two intermediate corners
 	maxd = minFloat(maxx + miny, minx + maxy)
-	*/
 	return
 	/*
 	How to compute mind
@@ -440,12 +396,6 @@ func minFloat(a, b float64) float64 {
 	       return a
        }
        return b
-}
-func maxFloat(a, b float64) float64 {
-       if a < b {
-	       return b
-       }
-       return a
 }
 
 
