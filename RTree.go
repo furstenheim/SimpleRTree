@@ -188,9 +188,9 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	}
 
 	r.buildNodeDownwards(&r.nodes[0], rootNodeConstruct, isSorted)
-	// Not using avx it seems to be significantly slower
-	// r.avxComputeBBoxDownwards(&r.nodes[0])
-	r.computeBBoxDownwards(&r.nodes[0])
+	// avx actually seems to go slower. SSE is slightly better
+	r.avxComputeBBoxDownwards(&r.nodes[0])
+	// r.computeBBoxDownwards(&r.nodes[0])
 	return rootNodeConstruct
 }
 
