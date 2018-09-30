@@ -188,8 +188,8 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	}
 
 	r.buildNodeDownwards(&r.nodes[0], rootNodeConstruct, isSorted)
-	// avx actually seems to go slower. SSE is slightly better
-	r.avxComputeBBoxDownwards(&r.nodes[0])
+	// vector actually seems to go slower. SSE is slightly better
+	r.vectorComputeBBoxDownwards(&r.nodes[0])
 	// r.computeBBoxDownwards(&r.nodes[0])
 	return rootNodeConstruct
 }
@@ -272,25 +272,25 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 }
 
 // Compute bbox of all tree all the way to the bottom
-func (r *SimpleRTree) avxComputeBBoxDownwards(n *Node) AvxBBox {
-	var bbox AvxBBox
+func (r *SimpleRTree) vectorComputeBBoxDownwards(n *Node) VectorBBox {
+	var bbox VectorBBox
 	if n.isLeaf {
-		return newAvxBBox(n.MinX, n.MinY, n.MaxX, n.MaxY)
+		return newVectorBBox(n.MinX, n.MinY, n.MaxX, n.MaxY)
 	} else {
 		n1 := n.firstChild
-		bbox = r.avxComputeBBoxDownwards(n1)
+		bbox = r.vectorComputeBBoxDownwards(n1)
 		f := unsafe.Pointer(n1)
 		var i int8
 		for i = 1; i < n.nChildren; i++ {
 			f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
-			bbox = avxBBoxExtend(bbox, r.avxComputeBBoxDownwards((*Node)(f)))
+			bbox = vectorBBoxExtend(bbox, r.vectorComputeBBoxDownwards((*Node)(f)))
 		}
 
 	}
-	n.MinX = bbox[AVX_BBOX_MIN_X]
-	n.MinY = bbox[AVX_BBOX_MIN_Y]
-	n.MaxX = -bbox[AVX_BBOX_NEG_MAX_X]
-	n.MaxY = -bbox[AVX_BBOX_NEG_MAX_Y]
+	n.MinX = bbox[VECTOR_BBOX_MIN_X]
+	n.MinY = bbox[VECTOR_BBOX_MIN_Y]
+	n.MaxX = bbox[VECTOR_BBOX_MAX_X]
+	n.MaxY = bbox[VECTOR_BBOX_MAX_Y]
 	return bbox
 }
 
