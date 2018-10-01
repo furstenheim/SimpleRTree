@@ -30,23 +30,21 @@ The library exposes only two methods. One to load and one to find nearest point
 These are the benchmarks for finding the nearest point once the index has been built. There are 0 allocations in the heap
 
     BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       489 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1495 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      2110 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  500000	      2953 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  500000	      3291 ns/op
-
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1442 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  500000	      2151 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  500000	      2844 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  500000	      3186 ns/op
 
 
 ### Benchmark Load CPU
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  500000	      3803 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	    3000	    560255 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     300	   6595234 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  43911900 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  80940155 ns/op
-
+    BenchmarkSimpleRTree_Load/10-4      	  500000	      3784 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	   10000	    610993 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     200	   7134870 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      20	  58062550 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  82345702 ns/op
 
 
 ### Benchmark Load mem

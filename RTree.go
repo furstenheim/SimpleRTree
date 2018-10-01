@@ -16,8 +16,15 @@ type Interface interface {
 	Swap(i, j int)                            // Swap elements with indexes i and j
 }
 
+const (
+	DEFAULT = iota
+	LEAF
+	PRELEAF
+)
+
 const MAX_POSSIBLE_SIZE = 9
 
+type nodeType int8
 
 type Options struct {
 	MAX_ENTRIES int
@@ -35,7 +42,7 @@ type SimpleRTree struct {
 	sorterBuffer []int // floyd rivest requires a bucket, we allocate it once and reuse
 }
 type Node struct {
-	isLeaf     bool
+	nodeType nodeType
 	nChildren int8
 	firstChild *Node
 	MinX, MinY, MaxX, MaxY float64
@@ -111,11 +118,27 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			break
 		}
 
-		if (item.node.isLeaf) {
+		switch item.node.nodeType {
+		case LEAF:
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
 			minItem = item
-		} else {
+		case PRELEAF:
+			f := unsafe.Pointer(item.node.firstChild)
+			var i int8
+			for i = 0; i < item.node.nChildren; i++ {
+				n := (*Node)(f)
+				d := n.computeLeafDistance(x, y)
+				if (d <= distanceUpperBound) {
+					childItem := queueItemPool.take()
+					childItem.node = n
+					childItem.distance = d
+					sq.Push(childItem)
+					distanceUpperBound = d
+				}
+				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+			}
+		default:
 			f := unsafe.Pointer(item.node.firstChild)
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
@@ -251,7 +274,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 // Compute bbox of all tree all the way to the bottom
 func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 	var bbox BBox
-	if n.isLeaf {
+	if n.nodeType == PRELEAF {
 		return BBox{MinX: n.MinX, MinY: n.MinY, MaxX: n.MaxX, MaxY: n.MaxY}
 	} else {
 		n1 := n.firstChild
@@ -274,7 +297,7 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 // Compute bbox of all tree all the way to the bottom
 func (r *SimpleRTree) vectorComputeBBoxDownwards(n *Node) VectorBBox {
 	var bbox VectorBBox
-	if n.isLeaf {
+	if n.nodeType == PRELEAF {
 		return newVectorBBox(n.MinX, n.MinY, n.MaxX, n.MaxY)
 	} else {
 		n1 := n.firstChild
@@ -298,20 +321,38 @@ func (r *SimpleRTree) vectorComputeBBoxDownwards(n *Node) VectorBBox {
 func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 	// Here we follow original rbush implementation.
 	firstChildIndex := len(r.nodes)
-	for i := 0; i < nc.end - nc.start; i++ {
+
+	x0, y0 := r.points.GetPointAt(nc.start)
+	bbox := newVectorBBox(x0, y0, x0, y0)
+	child0 := Node{
+		nodeType: LEAF,
+		MinX: x0,
+		MaxX: x0,
+		MinY: y0,
+		MaxY: y0,
+	}
+	r.nodes = append(r.nodes, child0)
+
+	for i := 1; i < nc.end - nc.start; i++ {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
-			isLeaf: true,
+			nodeType: LEAF,
 			MinX: x1,
 			MaxX: x1,
 			MinY: y1,
 			MaxY: y1,
-	}
+		}
+		bbox = vectorBBoxExtend(bbox, newVectorBBox(x1, y1, x1, y1))
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
 	n.firstChild = &r.nodes[firstChildIndex]
 	n.nChildren = int8(nc.end - nc.start)
+	n.nodeType = PRELEAF
+	n.MinX = bbox[VECTOR_BBOX_MIN_X]
+	n.MinY = bbox[VECTOR_BBOX_MIN_Y]
+	n.MaxX = bbox[VECTOR_BBOX_MAX_X]
+	n.MaxY = bbox[VECTOR_BBOX_MAX_Y]
 }
 
 func (r *SimpleRTree) toJSON () {
@@ -368,14 +409,12 @@ func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
 	}
 	return text
 }
-
+// node is point, there is only one distance
+func (n *Node) computeLeafDistance (x, y float64) float64 {
+	return (x - n.MinX) * (x - n.MinX)  + (y - n.MinY) * (y - n.MinY)
+}
 func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	// TODO try simd
-	if (n.isLeaf) {
-	       // node is point, there is only one distance
-	       d := (x - n.MinX) * (x - n.MinX)  + (y - n.MinY) * (y - n.MinY)
-	       return d, d
-	}
 	minx, maxx := sortFloats((x - n.MinX) * (x - n.MinX), (x - n.MaxX) * (x - n.MaxX))
 	miny, maxy := sortFloats((y - n.MinY) * (y - n.MinY), (y - n.MaxY) * (y - n.MaxY))
 
