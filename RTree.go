@@ -98,7 +98,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 
 	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
-	mind, maxd := rootNode.computeDistances(x, y)
+	mind, maxd := computeDistances(rootNode.bbox, x, y)
 	if (maxd < distanceUpperBound) {
 		distanceUpperBound = maxd
 	}
@@ -143,7 +143,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
-				mind, maxd := n.computeDistances(x, y)
+				mind, maxd := computeDistances(n.bbox, x, y)
 				if (mind <= distanceUpperBound) {
 					childItem := queueItemPool.take()
 					childItem.node = n
@@ -409,12 +409,12 @@ func (n *Node) computeLeafDistance (x, y float64) float64 {
 	return (x - n.bbox[VECTOR_BBOX_MIN_X]) * (x - n.bbox[VECTOR_BBOX_MIN_X]) +
 		(y - n.bbox[VECTOR_BBOX_MIN_Y]) * (y - n.bbox[VECTOR_BBOX_MIN_Y])
 }
-func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
+func computeDistances (bbox VectorBBox, x, y float64) (mind, maxd float64) {
 	// TODO try simd
-	minX := n.bbox[0]
-	minY := n.bbox[1]
-	maxX := n.bbox[2]
-	maxY := n.bbox[3]
+	minX := bbox[0]
+	minY := bbox[1]
+	maxX := bbox[2]
+	maxY := bbox[3]
 	minx, maxx := sortFloats((x - minX) * (x - minX), (x - maxX) * (x - maxX))
 	miny, maxy := sortFloats((y - minY) * (y - minY), (y - maxY) * (y - maxY))
 
