@@ -45,7 +45,7 @@ type Node struct {
 	nodeType nodeType
 	nChildren int8
 	firstChild *Node
-	MinX, MinY, MaxX, MaxY float64
+	bbox VectorBBox
 }
 
 // Structure used to constructing the ndoe
@@ -174,8 +174,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	if (minItem == nil) {
 		return
 	}
-	x1 = minItem.node.MaxX
-	y1 = minItem.node.MaxY
+	x1 = minItem.node.bbox[VECTOR_BBOX_MAX_X]
+	y1 = minItem.node.bbox[VECTOR_BBOX_MAX_Y]
 	// Only do sqrt at the end
 	d1 = math.Sqrt(distanceUpperBound)
 	found = true
@@ -275,7 +275,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 	var bbox BBox
 	if n.nodeType == PRELEAF {
-		return BBox{MinX: n.MinX, MinY: n.MinY, MaxX: n.MaxX, MaxY: n.MaxY}
+		return BBox{MinX: n.bbox[VECTOR_BBOX_MIN_X], MinY: n.bbox[VECTOR_BBOX_MIN_Y], MaxX: n.bbox[VECTOR_BBOX_MAX_X], MaxY: n.bbox[VECTOR_BBOX_MAX_Y]}
 	} else {
 		n1 := n.firstChild
 		bbox = r.computeBBoxDownwards(n1)
@@ -287,10 +287,7 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 		}
 
 	}
-	n.MinX = bbox.MinX
-	n.MinY = bbox.MinY
-	n.MaxX = bbox.MaxX
-	n.MaxY = bbox.MaxY
+	n.bbox = [4]float64{bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY}
 	return bbox
 }
 
@@ -298,7 +295,7 @@ func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
 func (r *SimpleRTree) vectorComputeBBoxDownwards(n *Node) VectorBBox {
 	var bbox VectorBBox
 	if n.nodeType == PRELEAF {
-		return newVectorBBox(n.MinX, n.MinY, n.MaxX, n.MaxY)
+		return VectorBBox(n.bbox)
 	} else {
 		n1 := n.firstChild
 		bbox = r.vectorComputeBBoxDownwards(n1)
@@ -310,10 +307,7 @@ func (r *SimpleRTree) vectorComputeBBoxDownwards(n *Node) VectorBBox {
 		}
 
 	}
-	n.MinX = bbox[VECTOR_BBOX_MIN_X]
-	n.MinY = bbox[VECTOR_BBOX_MIN_Y]
-	n.MaxX = bbox[VECTOR_BBOX_MAX_X]
-	n.MaxY = bbox[VECTOR_BBOX_MAX_Y]
+	n.bbox = bbox
 	return bbox
 }
 
@@ -326,10 +320,12 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 	bbox := newVectorBBox(x0, y0, x0, y0)
 	child0 := Node{
 		nodeType: LEAF,
-		MinX: x0,
-		MaxX: x0,
-		MinY: y0,
-		MaxY: y0,
+		bbox: [4]float64{
+			x0,
+			y0,
+			x0,
+			y0,
+		},
 	}
 	r.nodes = append(r.nodes, child0)
 
@@ -337,10 +333,12 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
 			nodeType: LEAF,
-			MinX: x1,
-			MaxX: x1,
-			MinY: y1,
-			MaxY: y1,
+			bbox: [4]float64{
+				x1,
+				y1,
+				x1,
+				y1,
+			},
 		}
 		bbox = vectorBBoxExtend(bbox, newVectorBBox(x1, y1, x1, y1))
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
@@ -349,10 +347,7 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 	n.firstChild = &r.nodes[firstChildIndex]
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
-	n.MinX = bbox[VECTOR_BBOX_MIN_X]
-	n.MinY = bbox[VECTOR_BBOX_MIN_Y]
-	n.MaxX = bbox[VECTOR_BBOX_MAX_X]
-	n.MaxY = bbox[VECTOR_BBOX_MAX_Y]
+	n.bbox = bbox
 }
 
 func (r *SimpleRTree) toJSON () {
@@ -411,15 +406,20 @@ func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
 }
 // node is point, there is only one distance
 func (n *Node) computeLeafDistance (x, y float64) float64 {
-	return (x - n.MinX) * (x - n.MinX)  + (y - n.MinY) * (y - n.MinY)
+	return (x - n.bbox[VECTOR_BBOX_MIN_X]) * (x - n.bbox[VECTOR_BBOX_MIN_X]) +
+		(y - n.bbox[VECTOR_BBOX_MIN_Y]) * (y - n.bbox[VECTOR_BBOX_MIN_Y])
 }
 func (n * Node) computeDistances (x, y float64) (mind, maxd float64) {
 	// TODO try simd
-	minx, maxx := sortFloats((x - n.MinX) * (x - n.MinX), (x - n.MaxX) * (x - n.MaxX))
-	miny, maxy := sortFloats((y - n.MinY) * (y - n.MinY), (y - n.MaxY) * (y - n.MaxY))
+	minX := n.bbox[0]
+	minY := n.bbox[1]
+	maxX := n.bbox[2]
+	maxY := n.bbox[3]
+	minx, maxx := sortFloats((x - minX) * (x - minX), (x - maxX) * (x - maxX))
+	miny, maxy := sortFloats((y - minY) * (y - minY), (y - maxY) * (y - maxY))
 
-	sideX := (n.MaxX - n.MinX) * (n.MaxX - n.MinX)
-	sideY := (n.MaxY - n.MinY) * (n.MaxY - n.MinY)
+	sideX := (maxX - minX) * (maxX - minX)
+	sideY := (maxY - minY) * (maxY - minY)
 
 	// Code is a bit cryptic but it is equivalent to the commented code which is clearer
 	if (maxx >= sideX) {
