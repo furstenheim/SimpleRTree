@@ -6,7 +6,7 @@
 // +32 x
 // +40 y
 // +48 mind
-// +54 maxd
+// +56 maxd
 // Return +24, +32
 TEXT ·vectorComputeDistances(SB), $0-60
 MOVUPD  min+0(FP), X0
@@ -18,14 +18,26 @@ SUBPD X1, X3 // point - max
 MULPD X2, X2 // (point - min) ** 2
 MULPD X3, X3 // (point - max) ** 2
 MOVUPD X2, X4 // copy to keep X2
-MOVUPD X2, X5 // copy to keep X2
 MINPD X3, X4 // min of (point -min)**2, (point - max)**2
-MAXPD X3, X5 // max of (point -min)**2, (point - max)**2
+MAXPD X3, X2 // max of (point -min)**2, (point - max)**2
 SUBPD X0, X1 // max - min
 MULPD X1, X1 // (max - min)**2 (sides)
-CMPPD X5, X1, 2// https://www.felixcloutier.com/x86/CMPPD.html sets 0 bits if false 1 bits if true order seems to be reversed
+CMPPD X2, X1, 2// https://www.felixcloutier.com/x86/CMPPD.html sets 0 bits if false 1 bits if true order seems to be reversed
 ANDPD X4, X1 // keep minx if X1 is 1 mask
-MOVUPD X1, ret+48(FP)
+
+MOVHPS X1, X3 // Move upper float of X1 to lower of X4
+ADDPS X3, X1 // Now X1 contains the sum of both elements
+
+MOVHPS X2, X3
+ADDPS X4, X3
+
+MOVHPS X4, X4
+ADDPS X4, X2
+
+MINPS X3, X2
+
+MOVSD X1, ret+48(FP)
+MOVSD X2, ret+56(FP)
 RET
 
     /*
