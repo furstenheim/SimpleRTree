@@ -27,3 +27,5 @@ bench-graph-load:
 	go test -run=XXX -bench Load -cpuprofile benchmarks/$$(git rev-parse HEAD)/cpu.prof
 	go tool pprof -svg SimpleRTree.test benchmarks/$$(git rev-parse HEAD)/cpu.prof > benchmarks/$$(git rev-parse HEAD)/cpu.svg
 	echo "File at benchmarks/$$(git rev-parse HEAD)/cpu.svg"
+compile-to-assembly:
+	go build -gcflags -S . 2> a

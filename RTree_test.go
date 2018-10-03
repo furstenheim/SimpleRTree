@@ -7,7 +7,43 @@ import (
 	_ "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/assert"
 	"fmt"
+	"log"
 )
+
+func TestNode_ComputeDistances (t *testing.T) {
+	ns := []struct {
+		Node
+		string
+	}{
+		{
+			Node{
+				bbox: [4]float64{
+					3,
+					3,
+					2,
+					3,
+				},
+			},
+			"greater equal",
+		},
+		{
+			Node{
+				bbox: [4]float64{
+					1,
+					3,
+					2,
+					3,
+				},
+			},
+			"less equal",
+		},
+	}
+	for _, n := range(ns) {
+		mind, maxd := vectorComputeDistances(n.bbox, 5, 5)
+		log.Println(mind, maxd)
+	}
+
+}
 
 func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	const size = 20

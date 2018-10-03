@@ -22,8 +22,9 @@ MOVUPD X2, X5 // copy to keep X2
 MINPD X3, X4 // min of (point -min)**2, (point - max)**2
 MAXPD X3, X5 // max of (point -min)**2, (point - max)**2
 SUBPD X0, X1 // max - min
-MULPD X1, X1 // (max - min)**2
-
+MULPD X1, X1 // (max - min)**2 (sides)
+CMPPD X5, X1, 2// https://www.felixcloutier.com/x86/CMPPD.html sets 0 bits if false 1 bits if true order seems to be reversed
+ANDPD X4, X1 // keep minx if X1 is 1 mask
 MOVUPD X1, ret+48(FP)
 RET
 
