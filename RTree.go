@@ -98,7 +98,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 
 	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
-	mind, maxd := computeDistances(rootNode.bbox, x, y)
+	mind, maxd := vectorComputeDistances(rootNode.bbox, x, y)
 	if (maxd < distanceUpperBound) {
 		distanceUpperBound = maxd
 	}
