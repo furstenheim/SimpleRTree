@@ -18,9 +18,9 @@ func TestNode_ComputeDistances (t *testing.T) {
 		{
 			Node{
 				bbox: [4]float64{
-					3,
-					3,
 					2,
+					3,
+					3,
 					3,
 				},
 			},
@@ -33,6 +33,16 @@ func TestNode_ComputeDistances (t *testing.T) {
 					3,
 					2,
 					3,
+				},
+			},
+			"less equal",
+		},		{
+			Node{
+				bbox: [4]float64{
+					1,
+					4,
+					8,
+					12,
 				},
 			},
 			"less equal",
