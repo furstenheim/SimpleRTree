@@ -143,7 +143,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
-				mind, maxd := computeDistances(n.bbox, x, y)
+				mind, maxd := vectorComputeDistances(n.bbox, x, y)
 				if (mind <= distanceUpperBound) {
 					childItem := queueItemPool.take()
 					childItem.node = n
