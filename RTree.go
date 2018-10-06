@@ -211,21 +211,17 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	}
 
 	r.buildNodeDownwards(&r.nodes[0], rootNodeConstruct, isSorted)
-	// vector actually seems to go slower. SSE is slightly better
-	r.vectorComputeBBoxDownwards(&r.nodes[0])
-	// r.computeBBoxDownwards(&r.nodes[0])
 	return rootNodeConstruct
 }
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) {
+func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) VectorBBox {
 	N := nc.end - nc.start
 	// target number of root entries to maximize storage utilization
 	var M float64
 	if N <= r.options.MAX_ENTRIES { // Leaf node
-		r.setLeafNode(n, nc)
-		return
+		return r.setLeafNode(n, nc)
 	}
 
 	M = math.Ceil(float64(N) / float64(math.Pow(float64(r.options.MAX_ENTRIES), float64(nc.height-1))))
@@ -263,56 +259,17 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	n.nChildren = nodeConstructIndex
 	// compute children
 	var i int8
-	for i= 0; i < nodeConstructIndex; i++ {
+	bbox := r.buildNodeDownwards(&r.nodes[firstChildIndex], nodeConstructs[i], false)
+	for i= 1; i < nodeConstructIndex; i++ {
 		// TODO check why using (*Node)f here does not work
-		r.buildNodeDownwards(&r.nodes[firstChildIndex + int(i)], nodeConstructs[i], false)
-	}
-}
-
-
-
-// Compute bbox of all tree all the way to the bottom
-func (r *SimpleRTree) computeBBoxDownwards(n *Node) BBox {
-	var bbox BBox
-	if n.nodeType == PRELEAF {
-		return BBox{MinX: n.bbox[VECTOR_BBOX_MIN_X], MinY: n.bbox[VECTOR_BBOX_MIN_Y], MaxX: n.bbox[VECTOR_BBOX_MAX_X], MaxY: n.bbox[VECTOR_BBOX_MAX_Y]}
-	} else {
-		n1 := n.firstChild
-		bbox = r.computeBBoxDownwards(n1)
-		f := unsafe.Pointer(n1)
-		var i int8
-		for i = 1; i < n.nChildren; i++ {
-			f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
-			bbox = bbox.extend(r.computeBBoxDownwards((*Node)(f)))
-		}
-
-	}
-	n.bbox = [4]float64{bbox.MinX, bbox.MinY, bbox.MaxX, bbox.MaxY}
-	return bbox
-}
-
-// Compute bbox of all tree all the way to the bottom
-func (r *SimpleRTree) vectorComputeBBoxDownwards(n *Node) VectorBBox {
-	var bbox VectorBBox
-	if n.nodeType == PRELEAF {
-		return VectorBBox(n.bbox)
-	} else {
-		n1 := n.firstChild
-		bbox = r.vectorComputeBBoxDownwards(n1)
-		f := unsafe.Pointer(n1)
-		var i int8
-		for i = 1; i < n.nChildren; i++ {
-			f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
-			bbox = vectorBBoxExtend(bbox, r.vectorComputeBBoxDownwards((*Node)(f)))
-		}
-
+		bbox2 := r.buildNodeDownwards(&r.nodes[firstChildIndex + int(i)], nodeConstructs[i], false)
+		bbox = vectorBBoxExtend(bbox2, bbox)
 	}
 	n.bbox = bbox
 	return bbox
 }
 
-
-func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
+func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) VectorBBox {
 	// Here we follow original rbush implementation.
 	firstChildIndex := len(r.nodes)
 
@@ -348,6 +305,7 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) {
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
 	n.bbox = bbox
+	return bbox
 }
 
 func (r *SimpleRTree) toJSON () {
