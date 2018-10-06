@@ -7,13 +7,12 @@ import (
 	_ "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/assert"
 	"fmt"
-	"log"
 )
 
 func TestNode_ComputeDistances (t *testing.T) {
 	ns := []struct {
 		Node
-		string
+		mind, maxd float64
 	}{
 		{
 			Node{
@@ -24,7 +23,8 @@ func TestNode_ComputeDistances (t *testing.T) {
 					3,
 				},
 			},
-			"greater equal",
+			8,
+			8,
 		},
 		{
 			Node{
@@ -35,8 +35,10 @@ func TestNode_ComputeDistances (t *testing.T) {
 					3,
 				},
 			},
-			"less equal",
-		},		{
+			13,
+			13,
+		},
+		{
 			Node{
 				bbox: [4]float64{
 					1,
@@ -45,12 +47,26 @@ func TestNode_ComputeDistances (t *testing.T) {
 					12,
 				},
 			},
-			"less equal",
+			0,
+			17,
+		},
+		{
+			Node{
+				bbox: [4]float64{
+					1,
+					1,
+					8,
+					4,
+				},
+			},
+			1,
+			17,
 		},
 	}
 	for _, n := range(ns) {
 		mind, maxd := vectorComputeDistances(n.bbox, 5, 5)
-		log.Println(mind, maxd)
+		assert.Equal(t, n.mind, mind)
+		assert.Equal(t, n.maxd, maxd)
 	}
 
 }
@@ -142,6 +158,43 @@ func TestComputeSize (t *testing.T) {
 		assert.True(t, tc.expected < final)
 	}
 }
+
+func Benchmark_ComputeDistances (b * testing.B) {
+	size := 1000000
+	points := make([]float64, size  + 10)
+	for i := 0; i < size + 10; i++ {
+		points[i] = rand.Float64()
+	}
+	b.ResetTimer()
+	i := 0
+	for n := 0; n < b.N; n++ {
+		i++
+		i %= size
+		bbox := newVectorBBox(points[i], points[i + 1],points[i+ 2],points[i + 3])
+		x, y := points[i + 4], points[i + 5]
+		_, _ = computeDistances(bbox, x, y)
+	}
+
+}
+
+func Benchmark_VectorComputeDistances (b * testing.B) {
+	size := 1000000
+	points := make([]float64, size  + 10)
+	for i := 0; i < size + 10; i++ {
+		points[i] = rand.Float64()
+	}
+	b.ResetTimer()
+	i := 0
+	for n := 0; n < b.N; n++ {
+		i++
+		i %= size
+		bbox := newVectorBBox(points[i], points[i + 1],points[i+ 2],points[i + 3])
+		x, y := points[i + 4], points[i + 5]
+		_, _ = vectorComputeDistances(bbox, x, y)
+	}
+
+}
+
 
 
 func BenchmarkSimpleRTree_Load(b *testing.B) {

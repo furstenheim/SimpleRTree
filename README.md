@@ -56,5 +56,8 @@ These are the benchmarks for the initial load
     BenchmarkSimpleRTree_Load/200000-4  	      20	  80569543 ns/op	19206200 B/op	      19 allocs/op
 
 
+## Benchmark Compute distances
 
+    Benchmark_ComputeDistances-4         	50000000	        24.2 ns/op
+    Benchmark_VectorComputeDistances-4   	100000000	        19.9 ns/op
 
