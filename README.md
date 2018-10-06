@@ -40,11 +40,12 @@ These are the benchmarks for finding the nearest point once the index has been b
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  300000	      3488 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	    5000	    519661 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     500	   6107797 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      20	  51950337 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  68857853 ns/op
+    BenchmarkSimpleRTree_Load/10-4      	  300000	      3591 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	   10000	    404584 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     500	   6526718 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      20	  58900581 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  77797865 ns/op
+
 
 ### Benchmark Load mem
 

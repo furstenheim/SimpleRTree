@@ -216,7 +216,7 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 
 
 
-func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) VectorBBox {
+func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) *VectorBBox {
 	N := nc.end - nc.start
 	// target number of root entries to maximize storage utilization
 	var M float64
@@ -263,18 +263,19 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	for i= 1; i < nodeConstructIndex; i++ {
 		// TODO check why using (*Node)f here does not work
 		bbox2 := r.buildNodeDownwards(&r.nodes[firstChildIndex + int(i)], nodeConstructs[i], false)
-		bbox = vectorBBoxExtend(bbox2, bbox)
+		vectorBBoxExtend(bbox, bbox2)
 	}
-	n.bbox = bbox
+	n.bbox = *bbox
 	return bbox
 }
 
-func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) VectorBBox {
+func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) *VectorBBox {
 	// Here we follow original rbush implementation.
 	firstChildIndex := len(r.nodes)
 
 	x0, y0 := r.points.GetPointAt(nc.start)
-	bbox := newVectorBBox(x0, y0, x0, y0)
+	vb := newVectorBBox(x0, y0, x0, y0)
+	bbox := &vb
 	child0 := Node{
 		nodeType: LEAF,
 		bbox: [4]float64{
@@ -297,14 +298,14 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) VectorBBox {
 				y1,
 			},
 		}
-		bbox = vectorBBoxExtend(bbox, newVectorBBox(x1, y1, x1, y1))
+		vectorBBoxExtend(bbox, &child.bbox)
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
 	n.firstChild = &r.nodes[firstChildIndex]
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
-	n.bbox = bbox
+	n.bbox = vb
 	return bbox
 }
 
