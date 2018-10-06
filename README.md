@@ -59,5 +59,6 @@ These are the benchmarks for the initial load
 ## Benchmark Compute distances
 
     Benchmark_ComputeDistances-4         	50000000	        24.2 ns/op
-    Benchmark_VectorComputeDistances-4   	100000000	        19.9 ns/op
+    Benchmark_VectorComputeDistances-4   	100000000	        19.6 ns/op
+
 
