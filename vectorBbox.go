@@ -22,7 +22,14 @@ func bbox2VectorBBox (b BBox) (VectorBBox){
  https://github.com/slimsag/rand/blob/master/simd/vec64.go
 */
 // Implemented in vectorBBox.s
-func vectorBBoxExtend(b1, b2 VectorBBox) VectorBBox
+func vectorBBoxExtend(b1, b2 VectorBBox) VectorBBox {
+	return VectorBBox{
+		minFloat(b1[0], b2[0]),
+		minFloat(b1[1], b2[1]),
+		maxFloat(b1[2], b2[2]),
+		maxFloat(b1[3], b2[3]),
+	}
+}
 
 func (b1 VectorBBox) toBBox () BBox {
 	return BBox{

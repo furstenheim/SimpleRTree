@@ -2,7 +2,8 @@
 // b1: +0(SP)
 // b2: +32(SP)
 // Return: +64(FP)
-TEXT ·vectorBBoxExtend(SB),$0-128
+// Not used since assembly cannot be inlined
+TEXT ·vectorBBoxExtendX(SB),$0-128
 MOVUPD    a+0(FP), X0
 MOVUPD    b+32(FP), X2
 MINPD     X2, X0
