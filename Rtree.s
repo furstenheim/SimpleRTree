@@ -8,10 +8,10 @@
 // +48 mind
 // +56 maxd
 TEXT ·vectorComputeDistances(SB), $0-60
+MOVUPD point+32(FP), X2
 MOVUPD  min+0(FP), X0
 MOVUPD  max+16(FP), X1
-MOVUPD point+32(FP), X2
-MOVUPD point+32(FP), X3
+MOVUPD X2, X3
 SUBPD X0, X2 // point - min
 SUBPD X1, X3 // point - max
 MULPD X2, X2 // (point - min) ** 2
