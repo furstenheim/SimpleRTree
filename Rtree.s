@@ -28,13 +28,10 @@ MOVLPS X1, X3 // Move upper float of X1 to lower
 ADDSD X3, X1 // Now X1 contains the sum of both elements
 MOVLPS X1, mind+48(FP)
 
+SHUFPD $0x1, X4, X4 // Invert X4
+ADDPD X4, X2 // Crossed sum
+MOVLPS X2, X6 // Move one of the mixed sums to X6
 
-MOVLPS X4, X6
-ADDSD X2, X6 // X6 contains min1 + max2
-
-MOVLPS X2, X5
-ADDSD X4, X5
-
-MINSD X6, X5
-MOVLPS X5, ret+56(FP)
+MINSD X2, X6
+MOVLPS X6, ret+56(FP)
 RET
