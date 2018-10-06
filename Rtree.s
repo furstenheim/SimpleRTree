@@ -29,12 +29,12 @@ ADDSD X3, X1 // Now X1 contains the sum of both elements
 MOVLPS X1, mind+48(FP)
 
 
-MOVLPS X4, X3
-ADDSD X2, X3 // X3 contains min1 + max2
+MOVLPS X4, X6
+ADDSD X2, X6 // X6 contains min1 + max2
 
 MOVLPS X2, X5
 ADDSD X4, X5
 
-MINSD X3, X5
+MINSD X6, X5
 MOVLPS X5, ret+56(FP)
 RET

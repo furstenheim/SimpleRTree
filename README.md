@@ -29,12 +29,11 @@ The library exposes only two methods. One to load and one to find nearest point
 
 These are the benchmarks for finding the nearest point once the index has been built. There are 0 allocations in the heap
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       472 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1308 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1962 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  500000	      2769 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  500000	      2879 ns/op
-
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       466 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1333 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1881 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  500000	      2624 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  500000	      2850 ns/op
 
 ### Benchmark Load CPU
 
@@ -58,7 +57,8 @@ These are the benchmarks for the initial load
 
 ## Benchmark Compute distances
 
-    Benchmark_ComputeDistances-4         	50000000	        24.2 ns/op
-    Benchmark_VectorComputeDistances-4   	100000000	        19.6 ns/op
+    Benchmark_ComputeDistances-4         	100000000	        24.0 ns/op
+    Benchmark_VectorComputeDistances-4   	100000000	        19.0 ns/op
+
 
 
