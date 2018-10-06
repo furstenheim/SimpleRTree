@@ -46,7 +46,7 @@ type Node struct {
 	nodeType   nodeType
 	nChildren  int8
 	firstChild *Node
-	bbox       VectorBBox
+	BBox       VectorBBox
 }
 
 // Structure used to constructing the ndoe
@@ -99,7 +99,7 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 
 	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
-	mind, maxd := vectorComputeDistances(rootNode.bbox, x, y)
+	mind, maxd := vectorComputeDistances(rootNode.BBox, x, y)
 	if maxd < distanceUpperBound {
 		distanceUpperBound = maxd
 	}
@@ -144,7 +144,7 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
-				mind, maxd := vectorComputeDistances(n.bbox, x, y)
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
 					childItem := queueItemPool.take()
 					childItem.node = n
@@ -175,8 +175,8 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 	if minItem == nil {
 		return
 	}
-	x1 = minItem.node.bbox[VECTOR_BBOX_MAX_X]
-	y1 = minItem.node.bbox[VECTOR_BBOX_MAX_Y]
+	x1 = minItem.node.BBox[VECTOR_BBOX_MAX_X]
+	y1 = minItem.node.BBox[VECTOR_BBOX_MAX_Y]
 	// Only do sqrt at the end
 	d1 = math.Sqrt(distanceUpperBound)
 	found = true
@@ -263,7 +263,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 		bbox2 := r.buildNodeDownwards(&r.nodes[firstChildIndex+int(i)], nodeConstructs[i], false)
 		vectorBBoxExtend(bbox, bbox2)
 	}
-	n.bbox = *bbox
+	n.BBox = *bbox
 	return bbox
 }
 
@@ -276,7 +276,7 @@ func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) *VectorBBox {
 	bbox := &vb
 	child0 := Node{
 		nodeType: LEAF,
-		bbox: [4]float64{
+		BBox: [4]float64{
 			x0,
 			y0,
 			x0,
@@ -289,21 +289,21 @@ func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) *VectorBBox {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
 			nodeType: LEAF,
-			bbox: [4]float64{
+			BBox: [4]float64{
 				x1,
 				y1,
 				x1,
 				y1,
 			},
 		}
-		vectorBBoxExtend(bbox, &child.bbox)
+		vectorBBoxExtend(bbox, &child.BBox)
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
 	n.firstChild = &r.nodes[firstChildIndex]
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
-	n.bbox = vb
+	n.BBox = vb
 	return bbox
 }
 
@@ -321,24 +321,24 @@ func (r *SimpleRTree) toJSONAcc(n *Node, text []string) []string {
        "coordinates": [
        [
        [
-       {{.BBox.MinX}},
-       {{.BBox.MinY}}
+       {{index .BBox 0}},
+       {{index .BBox 1}}
        ],
        [
-       {{.BBox.MaxX}},
-       {{.BBox.MinY}}
+       {{index .BBox 2}},
+       {{index .BBox 1}}
        ],
        [
-       {{.BBox.MaxX}},
-       {{.BBox.MaxY}}
+       {{index .BBox 2}},
+       {{index .BBox 3}}
        ],
        [
-       {{.BBox.MinX}},
-       {{.BBox.MaxY}}
+       {{index .BBox 0}},
+       {{index .BBox 3}}
        ],
        [
-       {{.BBox.MinX}},
-       {{.BBox.MinY}}
+       {{index .BBox 0}},
+       {{index .BBox 1}}
        ]
        ]
        ]
@@ -364,8 +364,8 @@ func (r *SimpleRTree) toJSONAcc(n *Node, text []string) []string {
 
 // node is point, there is only one distance
 func (n *Node) computeLeafDistance(x, y float64) float64 {
-	return (x-n.bbox[VECTOR_BBOX_MIN_X])*(x-n.bbox[VECTOR_BBOX_MIN_X]) +
-		(y-n.bbox[VECTOR_BBOX_MIN_Y])*(y-n.bbox[VECTOR_BBOX_MIN_Y])
+	return (x-n.BBox[VECTOR_BBOX_MIN_X])*(x-n.BBox[VECTOR_BBOX_MIN_X]) +
+		(y-n.BBox[VECTOR_BBOX_MIN_Y])*(y-n.BBox[VECTOR_BBOX_MIN_Y])
 }
 func computeDistances(bbox VectorBBox, x, y float64) (mind, maxd float64) {
 	// TODO try simd

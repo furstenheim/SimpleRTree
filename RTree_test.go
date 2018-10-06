@@ -1,7 +1,6 @@
 package SimpleRTree
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	_ "github.com/stretchr/testify/assert"
 	"math"
@@ -16,7 +15,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 	}{
 		{
 			Node{
-				bbox: [4]float64{
+				BBox: [4]float64{
 					2,
 					3,
 					3,
@@ -28,7 +27,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 		},
 		{
 			Node{
-				bbox: [4]float64{
+				BBox: [4]float64{
 					1,
 					3,
 					2,
@@ -40,7 +39,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 		},
 		{
 			Node{
-				bbox: [4]float64{
+				BBox: [4]float64{
 					1,
 					4,
 					8,
@@ -52,7 +51,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 		},
 		{
 			Node{
-				bbox: [4]float64{
+				BBox: [4]float64{
 					1,
 					1,
 					8,
@@ -64,7 +63,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 		},
 	}
 	for _, n := range ns {
-		mind, maxd := vectorComputeDistances(n.bbox, 5, 5)
+		mind, maxd := vectorComputeDistances(n.BBox, 5, 5)
 		assert.Equal(t, n.mind, mind)
 		assert.Equal(t, n.maxd, maxd)
 	}
@@ -121,7 +120,6 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	}
 	fp := FlatPoints(points)
 	r := New().Load(fp)
-	fmt.Println("Finished loading")
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
 		x1, y1, _, found := r.FindNearestPoint(x, y)
