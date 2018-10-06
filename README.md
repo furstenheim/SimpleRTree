@@ -1,12 +1,14 @@
 ## Simple RTree
 
-Simple RTree is a blazingly fast and GC friendly RTree. It performs under 4 microseconds with 1 Million points for closest point queries
+Simple RTree is a blazingly fast and GC friendly RTree. It performs in 3.3 microseconds with 1 Million points for closest point queries
 (measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocation.
-Building the index requires 19 allocations independently of the number of points.
+Building the index requires exactly 19 allocations independently of the number of points.
 
 To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
 It only accepts points, no bboxes or lines. It only accepts (for now) closest point queries.
 
+Beware, to achieve top performance one of the hot functions has been rewritten in assembly.
+Library works in x86 but it probably won't work in other architectures. PRs are welcome to fix this deficiency.
 
 ### Usage
 
