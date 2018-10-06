@@ -2,7 +2,7 @@
 package SimpleRTree
 
 import (
-"math"
+	"math"
 )
 
 // Buckets. Sort a slice into buckets of given size. All elements from one bucket are smaller than any element  from the next one.
@@ -24,11 +24,11 @@ func bucketsX(slice xSorter, bucketSize int, buffer []int) {
 	for len(s) > 0 {
 		s, right = s.pop()
 		s, left = s.pop()
-		if (right - left <= bucketSize) {
+		if right-left <= bucketSize {
 			continue
 		}
 		// + bucketSize - 1 is to do math ceil
-		mid = left + ((right - left + bucketSize - 1) / bucketSize / 2) * bucketSize
+		mid = left + ((right-left+bucketSize-1)/bucketSize/2)*bucketSize
 		selectX(slice, mid, left, right)
 
 		s = s.push(left)
@@ -44,20 +44,20 @@ func bucketsX(slice xSorter, bucketSize int, buffer []int) {
 // when left = 0
 func selectX(array xSorter, k, left, right int) {
 	length := array.Len()
-	for (right > left) {
-		if (right - left > 600) {
+	for right > left {
+		if right-left > 600 {
 			var n = float64(right - left + 1)
 			var kf = float64(k)
 			var m = float64(k - left + 1)
 			var z = math.Log(n)
-			var s = 0.5 * math.Exp(2 * z / 3)
+			var s = 0.5 * math.Exp(2*z/3)
 			sign := float64(1)
-			if  m - n / 2 < 0 {
+			if m-n/2 < 0 {
 				sign = -1
 			}
-			var sd = 0.5 * math.Sqrt(z * s * (n - s) / n) * sign
-			var newLeft = xSorterMax(left, int(math.Floor(kf - m * s / n + sd)))
-			var newRight = xSorterMin(right, int(math.Floor(kf + (n - m) * s / n + sd)))
+			var sd = 0.5 * math.Sqrt(z*s*(n-s)/n) * sign
+			var newLeft = xSorterMax(left, int(math.Floor(kf-m*s/n+sd)))
+			var newRight = xSorterMin(right, int(math.Floor(kf+(n-m)*s/n+sd)))
 			selectX(array, k, newLeft, newRight)
 		}
 
@@ -90,22 +90,21 @@ func selectX(array xSorter, k, left, right int) {
 			j++
 			array.Swap(j, right)
 		}
-		if (j <= k) {
+		if j <= k {
 			left = j + 1
 		}
-		if (k <= j) {
+		if k <= j {
 			right = j - 1
 		}
 	}
 }
 
-func xSorterMin(a, b int) int{
+func xSorterMin(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
-
 
 func xSorterMax(a, b int) int {
 	if a > b {
@@ -116,12 +115,10 @@ func xSorterMax(a, b int) int {
 
 type xSorterStack []int
 
-func (s xSorterStack) push (v int) xSorterStack {
+func (s xSorterStack) push(v int) xSorterStack {
 	return append(s, v)
 }
-func (s xSorterStack) pop () (xSorterStack, int) {
+func (s xSorterStack) pop() (xSorterStack, int) {
 	l := len(s)
 	return s[:l-1], s[l-1]
 }
-
-

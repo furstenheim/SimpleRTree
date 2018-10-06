@@ -1,9 +1,8 @@
 package SimpleRTree
 
-
 type xSorter struct {
-	n          *Node
-	points FlatPoints
+	n                      *Node
+	points                 FlatPoints
 	start, end, bucketSize int
 }
 
@@ -26,8 +25,8 @@ func (s xSorter) Sort(buffer []int) {
 }
 
 type ySorter struct {
-	n          *Node
-	points FlatPoints
+	n                      *Node
+	points                 FlatPoints
 	start, end, bucketSize int
 }
 

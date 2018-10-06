@@ -4,16 +4,16 @@ package SimpleRTree
 
 type searchQueuePool chan *searchQueue
 
-func newSearchQueuePool (total, queueSize int) * searchQueuePool {
+func newSearchQueuePool(total, queueSize int) *searchQueuePool {
 	p := make(searchQueuePool, total)
-	for i:= 0; i < total; i++ {
+	for i := 0; i < total; i++ {
 		item := make(searchQueue, queueSize)
 		p <- &item
 	}
 	return &p
 }
 
-func (p searchQueuePool) take () *searchQueue {
+func (p searchQueuePool) take() *searchQueue {
 	select {
 	case obj := <-p:
 		obj.Empty()
@@ -24,6 +24,6 @@ func (p searchQueuePool) take () *searchQueue {
 	}
 }
 
-func (p searchQueuePool) giveBack (item *searchQueue) {
+func (p searchQueuePool) giveBack(item *searchQueue) {
 	p <- item
 }

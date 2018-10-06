@@ -9,27 +9,27 @@ const (
 	VECTOR_BBOX_MAX_Y = 3
 )
 
-func newVectorBBox (MinX, MinY, MaxX, MaxY float64) (VectorBBox){
+func newVectorBBox(MinX, MinY, MaxX, MaxY float64) VectorBBox {
 	return [4]float64{MinX, MinY, MaxX, MaxY}
 }
 
-func bbox2VectorBBox (b BBox) (VectorBBox){
+func bbox2VectorBBox(b BBox) VectorBBox {
 	return newVectorBBox(b.MinX, b.MinY, b.MaxX, b.MaxY)
 }
 
 /**
- Code from
- https://github.com/slimsag/rand/blob/master/simd/vec64.go
+Code from
+https://github.com/slimsag/rand/blob/master/simd/vec64.go
 */
 // Implemented in vectorBBox.s
-func vectorBBoxExtend(b1, b2 *VectorBBox)  {
+func vectorBBoxExtend(b1, b2 *VectorBBox) {
 	b1[0] = minFloat(b1[0], b2[0])
 	b1[1] = minFloat(b1[1], b2[1])
 	b1[2] = maxFloat(b1[2], b2[2])
 	b1[3] = maxFloat(b1[3], b2[3])
 }
 
-func (b1 VectorBBox) toBBox () BBox {
+func (b1 VectorBBox) toBBox() BBox {
 	return BBox{
 		MinX: b1[VECTOR_BBOX_MIN_X],
 		MinY: b1[VECTOR_BBOX_MIN_Y],

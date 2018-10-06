@@ -1,19 +1,19 @@
 package SimpleRTree
 
 import (
-	"log"
-	"math"
-	"text/template"
 	"bytes"
 	"fmt"
+	"log"
+	"math"
 	"strings"
+	"text/template"
 	"unsafe"
 )
 
 type Interface interface {
-	GetPointAt(i int) (x1, y1 float64)        // Retrieve point at position i
-	Len() int                                 // Number of elements
-	Swap(i, j int)                            // Swap elements with indexes i and j
+	GetPointAt(i int) (x1, y1 float64) // Retrieve point at position i
+	Len() int                          // Number of elements
+	Swap(i, j int)                     // Swap elements with indexes i and j
 }
 
 const (
@@ -31,21 +31,22 @@ type Options struct {
 }
 
 var NODE_SIZE = unsafe.Sizeof(Node{})
+
 type SimpleRTree struct {
-	options  Options
-	nodes []Node
-	points FlatPoints
-	built bool
+	options Options
+	nodes   []Node
+	points  FlatPoints
+	built   bool
 	// Store pool of pools so that between algorithms it uses a channel (thread safe) within one algorithm it uses array
-	queueItemPoolPool * searchQueueItemPoolPool
-	queuePool * searchQueuePool
-	sorterBuffer []int // floyd rivest requires a bucket, we allocate it once and reuse
+	queueItemPoolPool *searchQueueItemPoolPool
+	queuePool         *searchQueuePool
+	sorterBuffer      []int // floyd rivest requires a bucket, we allocate it once and reuse
 }
 type Node struct {
-	nodeType nodeType
-	nChildren int8
+	nodeType   nodeType
+	nChildren  int8
 	firstChild *Node
-	bbox VectorBBox
+	bbox       VectorBBox
 }
 
 // Structure used to constructing the ndoe
@@ -85,10 +86,10 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 	return r.findNearestPointWithin(x, y, sqd)
 }
 
-func (r *SimpleRTree) FindNearestPoint (x, y float64) (x1, y1, d1 float64, found bool) {
+func (r *SimpleRTree) FindNearestPoint(x, y float64) (x1, y1, d1 float64, found bool) {
 	return r.findNearestPointWithin(x, y, math.Inf(1))
 }
-func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float64, found bool){
+func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float64, found bool) {
 	var minItem *searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	distanceUpperBound := d
@@ -99,11 +100,11 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
 	mind, maxd := vectorComputeDistances(rootNode.bbox, x, y)
-	if (maxd < distanceUpperBound) {
+	if maxd < distanceUpperBound {
 		distanceUpperBound = maxd
 	}
 	// Only start search if it is within bound
-	if (mind < distanceUpperBound) {
+	if mind < distanceUpperBound {
 		item := queueItemPool.take()
 		item.node = rootNode
 		item.distance = mind
@@ -113,8 +114,8 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	for sq.Len() > 0 {
 		item := sq.Pop()
 		currentDistance := item.distance
-		if (minItem != nil && currentDistance > distanceLowerBound) {
-			queueItemPool.giveBack(item);
+		if minItem != nil && currentDistance > distanceLowerBound {
+			queueItemPool.giveBack(item)
 			break
 		}
 
@@ -129,7 +130,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
 				d := n.computeLeafDistance(x, y)
-				if (d <= distanceUpperBound) {
+				if d <= distanceUpperBound {
 					childItem := queueItemPool.take()
 					childItem.node = n
 					childItem.distance = d
@@ -144,7 +145,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
 				mind, maxd := vectorComputeDistances(n.bbox, x, y)
-				if (mind <= distanceUpperBound) {
+				if mind <= distanceUpperBound {
 					childItem := queueItemPool.take()
 					childItem.node = n
 					childItem.distance = mind
@@ -152,7 +153,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
-				if (maxd < distanceUpperBound) {
+				if maxd < distanceUpperBound {
 					distanceUpperBound = maxd
 				}
 				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
@@ -171,7 +172,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	r.queueItemPoolPool.giveBack(queueItemPool)
 	r.queuePool.giveBack(sq)
 
-	if (minItem == nil) {
+	if minItem == nil {
 		return
 	}
 	x1 = minItem.node.bbox[VECTOR_BBOX_MAX_X]
@@ -182,7 +183,7 @@ func (r *SimpleRTree) findNearestPointWithin (x, y, d float64) (x1, y1, d1 float
 	return
 }
 
-func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
+func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	if points.Len() == 0 {
 		return r
 	}
@@ -191,10 +192,10 @@ func (r *SimpleRTree) load (points FlatPoints, isSorted bool) *SimpleRTree {
 	}
 	r.built = true
 
-	r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES + 1)
+	r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES+1)
 	rootNodeConstruct := r.build(points, isSorted)
-	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNodeConstruct.height * r.options.MAX_ENTRIES)
-	r.queuePool = newSearchQueuePool(2, rootNodeConstruct.height * r.options.MAX_ENTRIES)
+	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+	r.queuePool = newSearchQueuePool(2, rootNodeConstruct.height*r.options.MAX_ENTRIES)
 	// Max proportion when not checking max distance 2.3111111111111113
 	// Max proportion checking max distance 39 6 9 0.7222222222222222
 	return r
@@ -206,15 +207,13 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	r.nodes = append(r.nodes, Node{})
 	rootNodeConstruct := nodeConstruct{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
-		start: 0,
-		end: points.Len(),
+		start:  0,
+		end:    points.Len(),
 	}
 
 	r.buildNodeDownwards(&r.nodes[0], rootNodeConstruct, isSorted)
 	return rootNodeConstruct
 }
-
-
 
 func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) *VectorBBox {
 	N := nc.end - nc.start
@@ -230,8 +229,8 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	N1 := N2 * int(math.Ceil(math.Sqrt(M)))
 
 	// parent node might already be sorted. In that case we avoid double computation
-	if (!isSorted) {
-		sortX := xSorter{n: n, points: r.points, start: nc.start, end: nc.end, bucketSize:  N1}
+	if !isSorted {
+		sortX := xSorter{n: n, points: r.points, start: nc.start, end: nc.end, bucketSize: N1}
 		sortX.Sort(r.sorterBuffer)
 	}
 	nodeConstructs := [MAX_POSSIBLE_SIZE]nodeConstruct{}
@@ -243,11 +242,10 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 		sortY.Sort(r.sorterBuffer)
 		for j := i; j < right2; j += N2 {
 			right3 := minInt(j+N2, right2)
-			child := Node{
-			}
+			child := Node{}
 			childC := nodeConstruct{
-				start: nc.start + j,
-				end: nc.start + right3,
+				start:  nc.start + j,
+				end:    nc.start + right3,
 				height: nc.height - 1,
 			}
 			r.nodes = append(r.nodes, child)
@@ -260,16 +258,16 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	// compute children
 	var i int8
 	bbox := r.buildNodeDownwards(&r.nodes[firstChildIndex], nodeConstructs[i], false)
-	for i= 1; i < nodeConstructIndex; i++ {
+	for i = 1; i < nodeConstructIndex; i++ {
 		// TODO check why using (*Node)f here does not work
-		bbox2 := r.buildNodeDownwards(&r.nodes[firstChildIndex + int(i)], nodeConstructs[i], false)
+		bbox2 := r.buildNodeDownwards(&r.nodes[firstChildIndex+int(i)], nodeConstructs[i], false)
 		vectorBBoxExtend(bbox, bbox2)
 	}
 	n.bbox = *bbox
 	return bbox
 }
 
-func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) *VectorBBox {
+func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) *VectorBBox {
 	// Here we follow original rbush implementation.
 	firstChildIndex := len(r.nodes)
 
@@ -287,7 +285,7 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) *VectorBBox {
 	}
 	r.nodes = append(r.nodes, child0)
 
-	for i := 1; i < nc.end - nc.start; i++ {
+	for i := 1; i < nc.end-nc.start; i++ {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
 		child := Node{
 			nodeType: LEAF,
@@ -309,12 +307,12 @@ func (r *SimpleRTree) setLeafNode(n * Node, nc nodeConstruct) *VectorBBox {
 	return bbox
 }
 
-func (r *SimpleRTree) toJSON () {
+func (r *SimpleRTree) toJSON() {
 	text := make([]string, 0)
 	fmt.Println(strings.Join(r.toJSONAcc(&r.nodes[0], text), ","))
 }
 
-func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
+func (r *SimpleRTree) toJSONAcc(n *Node, text []string) []string {
 	t, err := template.New("foo").Parse(`{
 	       "type": "Feature",
 	       "properties": {},
@@ -346,7 +344,7 @@ func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
        ]
        }
        }`)
-	if (err != nil) {
+	if err != nil {
 		log.Fatal(err)
 	}
 	var tpl bytes.Buffer
@@ -363,94 +361,94 @@ func (r *SimpleRTree) toJSONAcc (n * Node, text []string) []string {
 	}
 	return text
 }
+
 // node is point, there is only one distance
-func (n *Node) computeLeafDistance (x, y float64) float64 {
-	return (x - n.bbox[VECTOR_BBOX_MIN_X]) * (x - n.bbox[VECTOR_BBOX_MIN_X]) +
-		(y - n.bbox[VECTOR_BBOX_MIN_Y]) * (y - n.bbox[VECTOR_BBOX_MIN_Y])
+func (n *Node) computeLeafDistance(x, y float64) float64 {
+	return (x-n.bbox[VECTOR_BBOX_MIN_X])*(x-n.bbox[VECTOR_BBOX_MIN_X]) +
+		(y-n.bbox[VECTOR_BBOX_MIN_Y])*(y-n.bbox[VECTOR_BBOX_MIN_Y])
 }
-func computeDistances (bbox VectorBBox, x, y float64) (mind, maxd float64) {
+func computeDistances(bbox VectorBBox, x, y float64) (mind, maxd float64) {
 	// TODO try simd
 	minX := bbox[0]
 	minY := bbox[1]
 	maxX := bbox[2]
 	maxY := bbox[3]
-	minx, maxx := sortFloats((x - minX) * (x - minX), (x - maxX) * (x - maxX))
-	miny, maxy := sortFloats((y - minY) * (y - minY), (y - maxY) * (y - maxY))
+	minx, maxx := sortFloats((x-minX)*(x-minX), (x-maxX)*(x-maxX))
+	miny, maxy := sortFloats((y-minY)*(y-minY), (y-maxY)*(y-maxY))
 
 	sideX := (maxX - minX) * (maxX - minX)
 	sideY := (maxY - minY) * (maxY - minY)
 
 	// Code is a bit cryptic but it is equivalent to the commented code which is clearer
-	if (maxx >= sideX) {
+	if maxx >= sideX {
 		mind += minx
 	}
-	if (maxy >= sideY) {
+	if maxy >= sideY {
 		mind += miny
 	}
 
 	// Given a bbox the distance will be bounded to the two intermediate corners
-	maxd = minFloat(maxx + miny, minx + maxy)
+	maxd = minFloat(maxx+miny, minx+maxy)
 	return
 	/*
-	How to compute mind
-	// point is inside because max distances in both axis are smaller than sides of the square
-	if (maxx < sideX && maxy < sideY) {
-		// do nothing mind is already 0
-	} else if (maxx < sideX && maxy >= sideY) {
-		// point is in vertical stripe. Hence distance to the bbox is minimum vertical distance
-		mind = miny
-	} else if (maxx >= sideX && maxy < sideY) {
-		// point is in horizontal stripe, Hence distance is least distance to one of the sides (vertical distance is 0
-		mind = minx
-	} else if (maxx >= sideX && maxy >= sideY){
-		// point is not inside bbox. closest vertex is that one with closest x and y
-		mind = minx + miny
-	}*/
+		How to compute mind
+		// point is inside because max distances in both axis are smaller than sides of the square
+		if (maxx < sideX && maxy < sideY) {
+			// do nothing mind is already 0
+		} else if (maxx < sideX && maxy >= sideY) {
+			// point is in vertical stripe. Hence distance to the bbox is minimum vertical distance
+			mind = miny
+		} else if (maxx >= sideX && maxy < sideY) {
+			// point is in horizontal stripe, Hence distance is least distance to one of the sides (vertical distance is 0
+			mind = minx
+		} else if (maxx >= sideX && maxy >= sideY){
+			// point is not inside bbox. closest vertex is that one with closest x and y
+			mind = minx + miny
+		}*/
 }
-func vectorComputeDistances (bbox VectorBBox, x, y float64) (mind, maxd float64)
+func vectorComputeDistances(bbox VectorBBox, x, y float64) (mind, maxd float64)
 
 func minInt(a, b int) int {
-       if a < b {
-	       return a
-       }
-       return b
+	if a < b {
+		return a
+	}
+	return b
 }
 func minFloat(a, b float64) float64 {
-       if a < b {
-	       return a
-       }
-       return b
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func maxFloat(a, b float64) float64 {
-       if a > b {
-	       return a
-       }
-       return b
+	if a > b {
+		return a
+	}
+	return b
 }
-
 
 type FlatPoints []float64
 
-func (fp FlatPoints) Len () int {
+func (fp FlatPoints) Len() int {
 	return len(fp) / 2
 }
 
-func (fp FlatPoints) Swap (i, j int) {
-	fp[2 * i], fp[2 * i + 1], fp[2 * j], fp[2 * j + 1] = fp[2 * j], fp[2 * j + 1], fp[2 * i], fp[2 * i + 1]
+func (fp FlatPoints) Swap(i, j int) {
+	fp[2*i], fp[2*i+1], fp[2*j], fp[2*j+1] = fp[2*j], fp[2*j+1], fp[2*i], fp[2*i+1]
 }
 
 func (fp FlatPoints) GetPointAt(i int) (x1, y1 float64) {
-	return fp[2 * i], fp[2 * i +1]
+	return fp[2*i], fp[2*i+1]
 }
 
-func sortFloats (x1, x2 float64) (x3, x4 float64) {
-	if (x1 > x2) {
+func sortFloats(x1, x2 float64) (x3, x4 float64) {
+	if x1 > x2 {
 		return x2, x1
 	}
 	return x1, x2
 }
 
-func computeSize (n int) (size int) {
+func computeSize(n int) (size int) {
 	return 2 * n
 }

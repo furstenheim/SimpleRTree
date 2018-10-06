@@ -1,21 +1,20 @@
 package SimpleRTree
 
 type searchQueueItem struct {
-	node *Node
+	node     *Node
 	distance float64
 }
 
-
 type searchQueue []*searchQueueItem
 
-func (sq searchQueue) Len () int {
+func (sq searchQueue) Len() int {
 	return len(sq)
 }
 
 /**
 Inlined heap for improved performance
 
- */
+*/
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -45,7 +44,6 @@ Inlined heap for improved performance
 // implementation to call. To add and remove things from the heap,
 // use heap.Push and heap.Pop.
 
-
 // Init establishes the heap invariants required by the other routines in this package.
 // Init is idempotent with respect to the heap invariants
 // and may be called whenever the heap invariants may have been invalidated.
@@ -58,7 +56,7 @@ func (h searchQueue) Init() {
 	}
 }
 
-func (sq searchQueue) Swap (i, j int) {
+func (sq searchQueue) Swap(i, j int) {
 	sq[i], sq[j] = sq[j], sq[i]
 }
 
@@ -67,7 +65,7 @@ func (sq searchQueue) Swap (i, j int) {
 //
 func (h *searchQueue) Push(x *searchQueueItem) {
 	*h = append(*h, x)
-	h.up(h.Len()-1)
+	h.up(h.Len() - 1)
 }
 
 // Pop removes the minimum element (according to Less) from the heap
@@ -79,8 +77,8 @@ func (h *searchQueue) Pop() *searchQueueItem {
 	h.Swap(0, n)
 	h.down(0, n)
 	arr := *h
-	item := arr[h.Len() - 1]
-	*h = arr[0: h.Len() - 1]
+	item := arr[h.Len()-1]
+	*h = arr[0 : h.Len()-1]
 	return item
 }
 
@@ -139,13 +137,12 @@ func (h searchQueue) down(i0, n int) bool {
 	return i > i0
 }
 
-func (sq searchQueue) Less(i, j int) bool{
+func (sq searchQueue) Less(i, j int) bool {
 	// We want to pop element with smaller distance
 	return sq[i].distance < sq[j].distance
 }
 
-
 func (sq *searchQueue) Empty() {
 	arr := *sq
-	*sq = arr[0: 0]
+	*sq = arr[0:0]
 }

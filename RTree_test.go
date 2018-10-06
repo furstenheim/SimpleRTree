@@ -1,15 +1,15 @@
 package SimpleRTree
 
 import (
-	"testing"
-	"math/rand"
-	"math"
-	_ "github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/assert"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	_ "github.com/stretchr/testify/assert"
+	"math"
+	"math/rand"
+	"testing"
 )
 
-func TestNode_ComputeDistances (t *testing.T) {
+func TestNode_ComputeDistances(t *testing.T) {
 	ns := []struct {
 		Node
 		mind, maxd float64
@@ -63,7 +63,7 @@ func TestNode_ComputeDistances (t *testing.T) {
 			17,
 		},
 	}
-	for _, n := range(ns) {
+	for _, n := range ns {
 		mind, maxd := vectorComputeDistances(n.bbox, 5, 5)
 		assert.Equal(t, n.mind, mind)
 		assert.Equal(t, n.maxd, maxd)
@@ -73,8 +73,8 @@ func TestNode_ComputeDistances (t *testing.T) {
 
 func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	const size = 20
-	points := make([]float64, size * 2)
-	for i := 0; i < 2 * size; i++ {
+	points := make([]float64, size*2)
+	for i := 0; i < 2*size; i++ {
 		points[i] = rand.Float64()
 	}
 	fp := FlatPoints(points)
@@ -92,8 +92,8 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 
 func TestSimpleRTree_FindNearestPointWithinOutOfBBox(t *testing.T) {
 	const size = 20
-	points := make([]float64, size * 2)
-	for i := 0; i < 2 * size; i++ {
+	points := make([]float64, size*2)
+	for i := 0; i < 2*size; i++ {
 		points[i] = rand.Float64()
 	}
 	fp := FlatPoints(points)
@@ -104,7 +104,6 @@ func TestSimpleRTree_FindNearestPointWithinOutOfBBox(t *testing.T) {
 
 }
 
-
 func TestSimpleRTree_FindNearestPointWithinEmptyWithinBBox(t *testing.T) {
 	points := []float64{0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0}
 	fp := FlatPoints(points)
@@ -114,11 +113,10 @@ func TestSimpleRTree_FindNearestPointWithinEmptyWithinBBox(t *testing.T) {
 	assert.False(t, found, "Closest point is not within distance")
 }
 
-
 func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	const size = 20000
-	points := make([]float64, size * 2)
-	for i := 0; i < 2 * size; i++ {
+	points := make([]float64, size*2)
+	for i := 0; i < 2*size; i++ {
 		points[i] = rand.Float64()
 	}
 	fp := FlatPoints(points)
@@ -135,9 +133,9 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 
 }
 
-func TestComputeSize (t *testing.T) {
-	testCases := []struct{
-		len int
+func TestComputeSize(t *testing.T) {
+	testCases := []struct {
+		len      int
 		expected int
 	}{
 		{
@@ -153,16 +151,16 @@ func TestComputeSize (t *testing.T) {
 			11277,
 		},
 	}
-	for _, tc := range(testCases) {
+	for _, tc := range testCases {
 		final := computeSize(tc.len)
 		assert.True(t, tc.expected < final)
 	}
 }
 
-func Benchmark_ComputeDistances (b * testing.B) {
+func Benchmark_ComputeDistances(b *testing.B) {
 	size := 1000000
-	points := make([]float64, size  + 10)
-	for i := 0; i < size + 10; i++ {
+	points := make([]float64, size+10)
+	for i := 0; i < size+10; i++ {
 		points[i] = rand.Float64()
 	}
 	b.ResetTimer()
@@ -170,17 +168,17 @@ func Benchmark_ComputeDistances (b * testing.B) {
 	for n := 0; n < b.N; n++ {
 		i++
 		i %= size
-		bbox := newVectorBBox(points[i], points[i + 1],points[i+ 2],points[i + 3])
-		x, y := points[i + 4], points[i + 5]
+		bbox := newVectorBBox(points[i], points[i+1], points[i+2], points[i+3])
+		x, y := points[i+4], points[i+5]
 		_, _ = computeDistances(bbox, x, y)
 	}
 
 }
 
-func Benchmark_VectorComputeDistances (b * testing.B) {
+func Benchmark_VectorComputeDistances(b *testing.B) {
 	size := 1000000
-	points := make([]float64, size  + 10)
-	for i := 0; i < size + 10; i++ {
+	points := make([]float64, size+10)
+	for i := 0; i < size+10; i++ {
 		points[i] = rand.Float64()
 	}
 	b.ResetTimer()
@@ -188,31 +186,29 @@ func Benchmark_VectorComputeDistances (b * testing.B) {
 	for n := 0; n < b.N; n++ {
 		i++
 		i %= size
-		bbox := newVectorBBox(points[i], points[i + 1],points[i+ 2],points[i + 3])
-		x, y := points[i + 4], points[i + 5]
+		bbox := newVectorBBox(points[i], points[i+1], points[i+2], points[i+3])
+		x, y := points[i+4], points[i+5]
 		_, _ = vectorComputeDistances(bbox, x, y)
 	}
 
 }
 
-
-
 func BenchmarkSimpleRTree_Load(b *testing.B) {
-	benchmarks := []struct{
+	benchmarks := []struct {
 		name string
 		size int
 	}{
-		{"10", 10,},
-		{"1000", 1000,},
-		{"10000", 10000,},
-		{"100000", 100000,},
-		{"200000", 200000,},
+		{"10", 10},
+		{"1000", 1000},
+		{"10000", 10000},
+		{"100000", 100000},
+		{"200000", 200000},
 	}
 	for _, bm := range benchmarks {
-		b.Run(bm.name, func (b * testing.B) {
+		b.Run(bm.name, func(b *testing.B) {
 			size := bm.size
-			points := make([]float64, size * 2)
-			for i := 0; i < 2 * size; i++ {
+			points := make([]float64, size*2)
+			for i := 0; i < 2*size; i++ {
 				points[i] = rand.Float64()
 			}
 			fp := FlatPoints(points)
@@ -226,21 +222,21 @@ func BenchmarkSimpleRTree_Load(b *testing.B) {
 }
 
 func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
-	benchmarks := []struct{
+	benchmarks := []struct {
 		name string
 		size int
 	}{
-		{"10", 10,},
-		{"1000", 1000,},
-		{"10000", 10000,},
-		{"100000", 100000,},
-		{"200000", 200000,},
+		{"10", 10},
+		{"1000", 1000},
+		{"10000", 10000},
+		{"100000", 100000},
+		{"200000", 200000},
 	}
 	for _, bm := range benchmarks {
-		b.Run(bm.name, func (b * testing.B) {
+		b.Run(bm.name, func(b *testing.B) {
 			size := bm.size
-			points := make([]float64, size * 2)
-			for i := 0; i < 2 * size; i++ {
+			points := make([]float64, size*2)
+			for i := 0; i < 2*size; i++ {
 				points[i] = rand.Float64()
 			}
 			fp := FlatPoints(points)
@@ -255,17 +251,17 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 }
 
 func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
-	benchmarks := []struct{
+	benchmarks := []struct {
 		name string
 		size int
 	}{
-		{"1000", 1000,},
+		{"1000", 1000},
 	}
 	for _, bm := range benchmarks {
-		b.Run(bm.name, func (b * testing.B) {
+		b.Run(bm.name, func(b *testing.B) {
 			size := bm.size
-			points := make([]float64, size * 2)
-			for i := 0; i < 2 * size; i++ {
+			points := make([]float64, size*2)
+			for i := 0; i < 2*size; i++ {
 				points[i] = rand.Float64()
 			}
 			fp := FlatPoints(points)
@@ -279,17 +275,17 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 	}
 }
 func BenchmarkSimpleRTree_LoadMemory(b *testing.B) {
-	benchmarks := []struct{
+	benchmarks := []struct {
 		name string
 		size int
 	}{
-		{"1000", 1000,},
+		{"1000", 1000},
 	}
 	for _, bm := range benchmarks {
-		b.Run(bm.name, func (b * testing.B) {
+		b.Run(bm.name, func(b *testing.B) {
 			size := bm.size
-			points := make([]float64, size * 2)
-			for i := 0; i < 2 * size; i++ {
+			points := make([]float64, size*2)
+			for i := 0; i < 2*size; i++ {
 				points[i] = rand.Float64()
 			}
 			fp := FlatPoints(points)
@@ -301,12 +297,11 @@ func BenchmarkSimpleRTree_LoadMemory(b *testing.B) {
 	}
 }
 
-
-func (fp FlatPoints ) linearClosestPoint (x, y float64) (x1, y1, d1 float64) {
+func (fp FlatPoints) linearClosestPoint(x, y float64) (x1, y1, d1 float64) {
 	d := math.Inf(1)
 	for i := 0; i < fp.Len(); i++ {
 		x2, y2 := fp.GetPointAt(i)
-		if d1 := math.Pow(x - x2, 2) + math.Pow(y - y2, 2); d1 < d {
+		if d1 := math.Pow(x-x2, 2) + math.Pow(y-y2, 2); d1 < d {
 			d = d1
 			x1 = x2
 			y1 = y2

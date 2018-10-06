@@ -12,7 +12,7 @@ func (b BBox) area() float64 {
 	return (b.MaxX - b.MinX) * (b.MaxY - b.MinY)
 }
 
-func (b1 BBox) equals (b2 BBox) bool {
+func (b1 BBox) equals(b2 BBox) bool {
 	return b1.MinX == b2.MinX &&
 		b1.MinY == b2.MinY &&
 		b1.MaxX == b2.MaxX &&
@@ -42,14 +42,12 @@ func (b1 BBox) contains(b2 BBox) bool {
 		b2.MaxY <= b1.MaxY
 }
 
-func (b1 BBox) containsPoint (x, y float64) bool {
+func (b1 BBox) containsPoint(x, y float64) bool {
 	return b1.MinX <= x &&
 		x <= b1.MaxX &&
 		b1.MinY <= y &&
 		y <= b1.MaxY
 }
-
-
 
 func (b1 BBox) intersects(b2 BBox) bool {
 	return b2.MinX <= b1.MaxX &&
