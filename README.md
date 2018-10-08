@@ -10,6 +10,8 @@ It only accepts points, no bboxes or lines. It only accepts (for now) closest po
 Beware, to achieve top performance one of the hot functions has been rewritten in assembly.
 Library works in x86 but it probably won't work in other architectures. PRs are welcome to fix this deficiency.
 
+![Simple Recursive Layout](./example.png?raw=true "Simple Recursive Layout")
+
 ### Usage
 
 The format of the points is a single array where each too coordinates represent a point
