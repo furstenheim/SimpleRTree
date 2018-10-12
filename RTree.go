@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 	"unsafe"
+	"sync"
 )
 
 type Interface interface {
@@ -37,9 +38,7 @@ type SimpleRTree struct {
 	nodes   []Node
 	points  FlatPoints
 	built   bool
-	// Store pool of pools so that between algorithms it uses a channel (thread safe) within one algorithm it uses array
-	queueItemPoolPool *searchQueueItemPoolPool
-	queuePool         *searchQueuePool
+	queuePool         sync.Pool
 	sorterBuffer      []int // floyd rivest requires a bucket, we allocate it once and reuse
 }
 type Node struct {
@@ -90,14 +89,14 @@ func (r *SimpleRTree) FindNearestPoint(x, y float64) (x1, y1, d1 float64, found 
 	return r.findNearestPointWithin(x, y, math.Inf(1))
 }
 func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float64, found bool) {
-	var minItem *searchQueueItem
+	var minItem searchQueueItem
 	distanceLowerBound := math.Inf(1)
 	distanceUpperBound := d
 	// if bbox is further from this bound then we don't explore it
-	sq := r.queuePool.take()
+	sq := r.queuePool.Get().(searchQueue)
+	sq = sq[0:0]
 	sq.Init()
 
-	queueItemPool := r.queueItemPoolPool.take()
 	rootNode := &r.nodes[0]
 	mind, maxd := vectorComputeDistances(rootNode.BBox, x, y)
 	if maxd < distanceUpperBound {
@@ -105,17 +104,13 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 	}
 	// Only start search if it is within bound
 	if mind < distanceUpperBound {
-		item := queueItemPool.take()
-		item.node = rootNode
-		item.distance = mind
-		sq.Push(item)
+		sq.Push(searchQueueItem{node: rootNode, distance: mind})
 	}
 
 	for sq.Len() > 0 {
 		item := sq.Pop()
 		currentDistance := item.distance
-		if minItem != nil && currentDistance > distanceLowerBound {
-			queueItemPool.giveBack(item)
+		if found && currentDistance > distanceLowerBound {
 			break
 		}
 
@@ -124,6 +119,7 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
 			minItem = item
+			found = true
 		case PRELEAF:
 			f := unsafe.Pointer(item.node.firstChild)
 			var i int8
@@ -131,10 +127,7 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 				n := (*Node)(f)
 				d := n.computeLeafDistance(x, y)
 				if d <= distanceUpperBound {
-					childItem := queueItemPool.take()
-					childItem.node = n
-					childItem.distance = d
-					sq.Push(childItem)
+					sq.Push(searchQueueItem{node: n, distance: d})
 					distanceUpperBound = d
 				}
 				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
@@ -146,10 +139,7 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 				n := (*Node)(f)
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
-					childItem := queueItemPool.take()
-					childItem.node = n
-					childItem.distance = mind
-					sq.Push(childItem)
+					sq.Push(searchQueueItem{node: n, distance: mind})
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -159,27 +149,18 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
 			}
 		}
-		queueItemPool.giveBack(item)
 	}
 
-	// Return all missing items. This could probably be async
-	for sq.Len() > 0 {
-		item := sq.Pop()
-		queueItemPool.giveBack(item)
-	}
+	// return heap
+	r.queuePool.Put(sq)
 
-	// return pool of items
-	r.queueItemPoolPool.giveBack(queueItemPool)
-	r.queuePool.giveBack(sq)
-
-	if minItem == nil {
+	if !found {
 		return
 	}
 	x1 = minItem.node.BBox[VECTOR_BBOX_MAX_X]
 	y1 = minItem.node.BBox[VECTOR_BBOX_MAX_Y]
 	// Only do sqrt at the end
 	d1 = math.Sqrt(distanceUpperBound)
-	found = true
 	return
 }
 
@@ -194,10 +175,13 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 
 	r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES+1)
 	rootNodeConstruct := r.build(points, isSorted)
-	r.queueItemPoolPool = newSearchQueueItemPoolPool(2, rootNodeConstruct.height*r.options.MAX_ENTRIES)
-	r.queuePool = newSearchQueuePool(2, rootNodeConstruct.height*r.options.MAX_ENTRIES)
-	// Max proportion when not checking max distance 2.3111111111111113
-	// Max proportion checking max distance 39 6 9 0.7222222222222222
+	r.queuePool = sync.Pool{
+		New: func () interface {} {
+			return make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+		},
+	}
+	firstQueue := r.queuePool.Get()
+	r.queuePool.Put(firstQueue)
 	return r
 }
 

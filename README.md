@@ -1,6 +1,6 @@
 ## Simple RTree
 
-Simple RTree is a blazingly fast and GC friendly RTree. It performs in 3.3 microseconds with 1 Million points for closest point queries
+Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.9 microseconds with 1 Million points for closest point queries
 (measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocation.
 Building the index requires exactly 19 allocations independently of the number of points.
 
@@ -33,11 +33,13 @@ The library exposes only two methods. One to load and one to find nearest point
 
 These are the benchmarks for finding the nearest point once the index has been built. There are 0 allocations in the heap
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       481 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1300 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1859 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	  500000	      2586 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  500000	      2841 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 5000000	       409 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1212 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1792 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      2121 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	  500000	      2339 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	  500000	      2903 ns/op
+
 
 ### Benchmark Load CPU
 

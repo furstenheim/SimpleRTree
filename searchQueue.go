@@ -5,7 +5,7 @@ type searchQueueItem struct {
 	distance float64
 }
 
-type searchQueue []*searchQueueItem
+type searchQueue []searchQueueItem
 
 func (sq searchQueue) Len() int {
 	return len(sq)
@@ -63,7 +63,7 @@ func (sq searchQueue) Swap(i, j int) {
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
 //
-func (h *searchQueue) Push(x *searchQueueItem) {
+func (h *searchQueue) Push(x searchQueueItem) {
 	*h = append(*h, x)
 	h.up(h.Len() - 1)
 }
@@ -72,7 +72,7 @@ func (h *searchQueue) Push(x *searchQueueItem) {
 // and returns it. The complexity is O(log(n)) where n = h.Len().
 // It is equivalent to Remove(h, 0).
 //
-func (h *searchQueue) Pop() *searchQueueItem {
+func (h *searchQueue) Pop() searchQueueItem {
 	n := h.Len() - 1
 	h.Swap(0, n)
 	h.down(0, n)
