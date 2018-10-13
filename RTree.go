@@ -80,18 +80,13 @@ func (r *SimpleRTree) LoadSortedArray(points FlatPoints) *SimpleRTree {
 	return r.load(points, true)
 }
 
-func (r *SimpleRTree) FindNearestPointWithin(x, y, d float64) (x1, y1, d1 float64, found bool) {
-	sqd := d * d // we work with squared distances
-	return r.findNearestPointWithin(x, y, sqd)
-}
-
 func (r *SimpleRTree) FindNearestPoint(x, y float64) (x1, y1, d1 float64, found bool) {
-	return r.findNearestPointWithin(x, y, math.Inf(1))
+	return r.FindNearestPointWithin(x, y, math.Inf(1))
 }
-func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float64, found bool) {
+func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1squared float64, found bool) {
 	var minItem searchQueueItem
 	distanceLowerBound := math.Inf(1)
-	distanceUpperBound := d
+	distanceUpperBound := dsquared
 	// if bbox is further from this bound then we don't explore it
 	sq := r.queuePool.Get().(searchQueue)
 	sq = sq[0:0]
@@ -160,7 +155,7 @@ func (r *SimpleRTree) findNearestPointWithin(x, y, d float64) (x1, y1, d1 float6
 	x1 = minItem.node.BBox[VECTOR_BBOX_MAX_X]
 	y1 = minItem.node.BBox[VECTOR_BBOX_MAX_Y]
 	// Only do sqrt at the end
-	d1 = math.Sqrt(distanceUpperBound)
+	d1squared = distanceUpperBound
 	return
 }
 

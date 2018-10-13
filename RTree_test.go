@@ -108,7 +108,7 @@ func TestSimpleRTree_FindNearestPointWithinEmptyWithinBBox(t *testing.T) {
 	fp := FlatPoints(points)
 	r := New().Load(fp)
 	x, y := 0.5, 0.5
-	_, _, _, found := r.FindNearestPointWithin(x, y, 0.5)
+	_, _, _, found := r.FindNearestPointWithin(x, y, 0.25)
 	assert.False(t, found, "Closest point is not within distance")
 }
 
