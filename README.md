@@ -1,6 +1,6 @@
 ## Simple RTree
 
-Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.9 microseconds with 1 Million points for closest point queries
+Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.6 microseconds with 1 Million points for closest point queries
 (measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 1 allocation.
 Building the index requires exactly 19 allocations independently of the number of points.
 
