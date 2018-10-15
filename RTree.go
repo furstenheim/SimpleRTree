@@ -86,8 +86,8 @@ func (r *SimpleRTree) FindNearestPoint(x, y float64) (x1, y1, d1 float64, found 
 func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1squared float64, found bool) {
 	var minItem searchQueueItem
 	distanceLowerBound := math.Inf(1)
-	distanceUpperBound := dsquared
 	// if bbox is further from this bound then we don't explore it
+	distanceUpperBound := dsquared
 	sq := r.queuePool.Get().(searchQueue)
 	sq = sq[0:0]
 	sq.Init()
@@ -154,7 +154,6 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	}
 	x1 = minItem.node.BBox[VECTOR_BBOX_MAX_X]
 	y1 = minItem.node.BBox[VECTOR_BBOX_MAX_Y]
-	// Only do sqrt at the end
 	d1squared = distanceUpperBound
 	return
 }
