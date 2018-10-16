@@ -29,6 +29,10 @@ type nodeType int8
 
 type Options struct {
 	MAX_ENTRIES int
+	// base array is []Node
+	BaseArrayPool *sync.Pool
+	// sorterBuffer is []int
+	SorterBufferPool *sync.Pool
 }
 
 var NODE_SIZE = unsafe.Sizeof(Node{})
@@ -57,7 +61,7 @@ type nodeConstruct struct {
 // Create an RTree index from an array of points
 func New() *SimpleRTree {
 	defaultOptions := Options{
-		MAX_ENTRIES: 9,
+		MAX_ENTRIES: MAX_POSSIBLE_SIZE,
 	}
 	return NewWithOptions(defaultOptions)
 }
@@ -69,7 +73,20 @@ func NewWithOptions(options Options) *SimpleRTree {
 	if options.MAX_ENTRIES > MAX_POSSIBLE_SIZE {
 		panic(fmt.Sprintf("Cannot exceed %d for size", MAX_POSSIBLE_SIZE))
 	}
+	if options.MAX_ENTRIES == 0 {
+		r.options.MAX_ENTRIES = MAX_POSSIBLE_SIZE
+	}
 	return r
+}
+
+// Free up resources in case they were lent
+func (r *SimpleRTree) Destroy () {
+	if r.options.BaseArrayPool != nil {
+		r.options.BaseArrayPool.Put(r.nodes)
+	}
+	if r.options.SorterBufferPool != nil {
+		r.options.SorterBufferPool.Put(r.sorterBuffer)
+	}
 }
 
 func (r *SimpleRTree) Load(points FlatPoints) *SimpleRTree {
@@ -162,12 +179,28 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	if points.Len() == 0 {
 		return r
 	}
+	if r.options.MAX_ENTRIES == 0 {
+		panic("MAX entries was 0")
+	}
 	if r.built {
 		log.Fatal("Tree is static, cannot load twice")
 	}
 	r.built = true
 
-	r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES+1)
+	isSortedBufferSet := false
+	if r.options.SorterBufferPool != nil {
+		sorterBufferCandidate := r.options.SorterBufferPool.Get()
+		if sorterBufferCandidate != nil {
+			sorterBufferCandidateArray := sorterBufferCandidate.([]int)
+			if cap(sorterBufferCandidateArray) >= r.options.MAX_ENTRIES+1 {
+				r.sorterBuffer = sorterBufferCandidateArray[0: 0]
+				isSortedBufferSet = true
+			}
+		}
+	}
+	if !isSortedBufferSet {
+		r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES+1)
+	}
 	rootNodeConstruct := r.build(points, isSorted)
 	r.queuePool = sync.Pool{
 		New: func () interface {} {
@@ -181,7 +214,20 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 
 func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	r.points = points
-	r.nodes = make([]Node, 0, computeSize(points.Len()))
+	isBaseArraySet := false
+	if r.options.BaseArrayPool != nil {
+		baseArrayCandidate := r.options.BaseArrayPool.Get()
+		if baseArrayCandidate != nil {
+			baseArrayCandidateArray := baseArrayCandidate.([]Node)
+			if cap(baseArrayCandidateArray) >= computeSize(points.Len()) {
+				r.nodes = baseArrayCandidateArray[0: 0]
+				isBaseArraySet = true
+			}
+		}
+	}
+	if !isBaseArraySet {
+		r.nodes = make([]Node, 0, computeSize(points.Len()))
+	}
 	r.nodes = append(r.nodes, Node{})
 	rootNodeConstruct := nodeConstruct{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
