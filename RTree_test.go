@@ -131,6 +131,25 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 
 }
 
+func TestSimpleRTree_FindNearestPointBigUnsafeMode(t *testing.T) {
+	const size = 20000
+	points := make([]float64, size*2)
+	for i := 0; i < 2*size; i++ {
+		points[i] = rand.Float64()
+	}
+	fp := FlatPoints(points)
+	r := NewWithOptions(Options{UnsafeConcurrencyMode:true}).Load(fp)
+	for i := 0; i < 1000; i++ {
+		x, y := rand.Float64(), rand.Float64()
+		x1, y1, _, found := r.FindNearestPoint(x, y)
+		assert.True(t, found, "We should always find nearest")
+		x2, y2, _ := fp.linearClosestPoint(x, y)
+		assert.Equal(t, x1, x2, "X coordinate")
+		assert.Equal(t, y1, y2, "Y coordinate")
+	}
+
+}
+
 func TestComputeSize(t *testing.T) {
 	testCases := []struct {
 		len      int
@@ -239,7 +258,7 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 				points[i] = rand.Float64()
 			}
 			fp := FlatPoints(points)
-			r := New().Load(fp)
+			r := NewWithOptions(Options{UnsafeConcurrencyMode: true}).Load(fp)
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
 				x, y := rand.Float64(), rand.Float64()
@@ -264,7 +283,7 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 				points[i] = rand.Float64()
 			}
 			fp := FlatPoints(points)
-			r := New().Load(fp)
+			r := NewWithOptions(Options{UnsafeConcurrencyMode: true}).Load(fp)
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
 				x, y := rand.Float64(), rand.Float64()

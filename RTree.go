@@ -28,6 +28,8 @@ const MAX_POSSIBLE_SIZE = 9
 type nodeType int8
 
 type Options struct {
+	// Set this parameter to true if you only intend to access the R tree from one go routine
+	UnsafeConcurrencyMode bool
 	MAX_ENTRIES int
 	// base array is []Node
 	BaseArrayPool *sync.Pool
@@ -43,6 +45,7 @@ type SimpleRTree struct {
 	points  FlatPoints
 	built   bool
 	queuePool         sync.Pool
+	unsafeQueue         searchQueue // Only used in unsafe mode
 	sorterBuffer      []int // floyd rivest requires a bucket, we allocate it once and reuse
 }
 type Node struct {
@@ -105,7 +108,12 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
 	distanceUpperBound := dsquared
-	sq := r.queuePool.Get().(searchQueue)
+	var sq searchQueue
+	if r.options.UnsafeConcurrencyMode {
+		sq = r.unsafeQueue
+	} else {
+		sq = r.queuePool.Get().(searchQueue)
+	}
 	sq = sq[0:0]
 	sq.Init()
 
@@ -164,7 +172,9 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	}
 
 	// return heap
-	r.queuePool.Put(sq)
+	if !r.options.UnsafeConcurrencyMode {
+		r.queuePool.Put(sq)
+	}
 
 	if !found {
 		return
@@ -202,13 +212,17 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 		r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES+1)
 	}
 	rootNodeConstruct := r.build(points, isSorted)
-	r.queuePool = sync.Pool{
-		New: func () interface {} {
-			return make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
-		},
+	if r.options.UnsafeConcurrencyMode {
+		r.unsafeQueue = make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+	} else {
+		r.queuePool = sync.Pool{
+			New: func () interface {} {
+				return make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+			},
+		}
+		firstQueue := r.queuePool.Get()
+		r.queuePool.Put(firstQueue)
 	}
-	firstQueue := r.queuePool.Get()
-	r.queuePool.Put(firstQueue)
 	return r
 }
 

@@ -1,7 +1,7 @@
 ## Simple RTree
 
-Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.6 microseconds with 1 Million points for closest point queries
-(measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 1 allocation.
+Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.5 microseconds with 1 Million points for closest point queries
+(measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocations.
 Building the index requires exactly 19 allocations independently of the number of points.
 
 To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
@@ -27,18 +27,27 @@ The library exposes only two methods. One to load and one to find nearest point
     closestX, closestY, distanceSquared, found := r.FindNearestPoint(1.0, 3.0)
     // 1.0, 1.0, 4.0, true
 
+Additionally the tree can be built using options:
 
+    r := SimpleRTree.NewWithOptions(Options{...})
+
+For example:
+
+    NewWithOptions(Options{UnsafeConcurrencyMode:true})
+
+Is a slightly more efficient rtree, but which cannot be accessed from more than one goroutine at the same time.
 
 ### Benchmark. CPU
 
-These are the benchmarks for finding the nearest point once the index has been built. There is 1 allocations in the heap
+These are the benchmarks for finding the nearest point once the index has been built.
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 3000000	       636 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 1000000	      1478 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	  500000	      2079 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      2028 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      2354 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	  500000	      2615 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 5000000	       270 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 2000000	       986 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1427 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      1916 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      2135 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	  500000	      2573 ns/op
+
 
 ### Benchmark Load CPU
 
