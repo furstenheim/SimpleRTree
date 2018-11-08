@@ -27,7 +27,7 @@ MAXSD X3, X2 // max of (point -min)**2, (point - max)**2
 SUBSD X0, X1 // max - min
 MULSD X1, X1 // (max - min)**2 (sides)
 CMPSD X2, X1, 2// https://www.felixcloutier.com/x86/CMPPD.html sets 0 bits if false 1 bits if true order seems to be reversed
-PAND X4, X1 // keep minx if X1 is 1 mask
+PAND X4, X1 // keep minx**2 if X1 is 1 mask (that is point is outside bbox)
 
 // compute for y
 MOVSD X7, X8
@@ -47,9 +47,9 @@ PAND X9, X6 // keep minx if X1 is 1 mask
 ADDSD X6, X1 // Now X1 contains the sum of both elements
 MOVSD X1, mind+48(FP)
 
-SHUFPD $0x1, X4, X4 // Invert X4
-ADDSD X4, X2 // Crossed sum
-ADDSD X9, X7
+// SHUFPD $0x1, X4, X4 // Invert X4
+ADDSD X9, X2 // Crossed sum
+ADDSD X4, X7
 // MOVLPS X2, X6 // Move one of the mixed sums to X6
 
 MINSD X2, X7 // Min of crossed sums

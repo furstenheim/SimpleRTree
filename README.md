@@ -1,6 +1,6 @@
 ## Simple RTree
 
-Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.5 microseconds with 1 Million points for closest point queries
+Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.36 microseconds with 1 Million points for closest point queries
 (measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocations.
 Building the index requires exactly 19 allocations independently of the number of points.
 
@@ -41,13 +41,12 @@ Is a slightly more efficient rtree, but which cannot be accessed from more than 
 
 These are the benchmarks for finding the nearest point once the index has been built.
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 5000000	       270 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 2000000	       986 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1427 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      1916 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      2135 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	  500000	      2573 ns/op
-
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 5000000	       252 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 2000000	       881 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1298 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      1828 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      1998 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	  500000	      2364 ns/op
 
 ### Benchmark Load CPU
 
@@ -71,8 +70,9 @@ These are the benchmarks for the initial load
 
 ## Benchmark Compute distances
 
-    Benchmark_ComputeDistances-4         	50000000	        23.6 ns/op
-    Benchmark_VectorComputeDistances-4   	100000000	        18.4 ns/op
+    Benchmark_ComputeDistances-4         	50000000	        23.9 ns/op
+    Benchmark_VectorComputeDistances-4   	100000000	        12.8 ns/op
+
 
 
 
