@@ -253,7 +253,7 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	return rootNodeConstruct
 }
 
-func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) *VectorBBox {
+func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) VectorBBox {
 	N := nc.end - nc.start
 	// target number of root entries to maximize storage utilization
 	var M float64
@@ -299,42 +299,37 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	for i = 1; i < nodeConstructIndex; i++ {
 		// TODO check why using (*Node)f here does not work
 		bbox2 := r.buildNodeDownwards(&r.nodes[firstChildIndex+int(i)], nodeConstructs[i], false)
-		vectorBBoxExtend(bbox, bbox2)
+		bbox = vectorBBoxExtend(bbox, bbox2)
 	}
-	n.BBox = *bbox
+	n.BBox = bbox
 	return bbox
 }
 
-func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) *VectorBBox {
+func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) VectorBBox {
 	// Here we follow original rbush implementation.
 	firstChildIndex := len(r.nodes)
 
 	x0, y0 := r.points.GetPointAt(nc.start)
-	vb := newVectorBBox(x0, y0, x0, y0)
-	bbox := &vb
+	vb := VectorBBox{x0, y0, x0, y0}
 	child0 := Node{
 		nodeType: LEAF,
-		BBox: [4]float64{
-			x0,
-			y0,
-			x0,
-			y0,
-		},
+		BBox: vb,
 	}
 	r.nodes = append(r.nodes, child0)
 
 	for i := 1; i < nc.end-nc.start; i++ {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
+		vb1 := [4]float64{
+			x1,
+			y1,
+			x1,
+			y1,
+		}
 		child := Node{
 			nodeType: LEAF,
-			BBox: [4]float64{
-				x1,
-				y1,
-				x1,
-				y1,
-			},
+			BBox: vb1,
 		}
-		vectorBBoxExtend(bbox, &child.BBox)
+		vb = vectorBBoxExtend(vb, child.BBox)
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
@@ -342,7 +337,7 @@ func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) *VectorBBox {
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
 	n.BBox = vb
-	return bbox
+	return vb
 }
 
 func (r *SimpleRTree) toJSON() {

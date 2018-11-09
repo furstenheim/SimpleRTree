@@ -2,7 +2,7 @@
 
 Simple RTree is a blazingly fast and GC friendly RTree. It performs in 2.36 microseconds with 1 Million points for closest point queries
 (measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocations.
-Building the index requires exactly 19 allocations independently of the number of points.
+Building the index requires exactly 8 allocations.
 
 To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
 It only accepts points, no bboxes or lines. It only accepts (for now) closest point queries.
@@ -52,20 +52,19 @@ These are the benchmarks for finding the nearest point once the index has been b
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  300000	      3591 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	   10000	    404584 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     500	   6526718 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      20	  58900581 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  77797865 ns/op
-
+    BenchmarkSimpleRTree_Load/10-4      	  500000	      3033 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	    3000	    515000 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     300	   4333039 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  45430695 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  78284182 ns/op
 
 ### Benchmark Load mem
 
-    BenchmarkSimpleRTree_Load/10-4      	  500000	      3160 ns/op	    2744 B/op	      19 allocs/op
-    BenchmarkSimpleRTree_Load/1000-4    	    5000	    390040 ns/op	  101176 B/op	      19 allocs/op
-    BenchmarkSimpleRTree_Load/10000-4   	     500	   3635069 ns/op	  970296 B/op	      19 allocs/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  40846081 ns/op	 9605176 B/op	      19 allocs/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  80569543 ns/op	19206200 B/op	      19 allocs/op
+    BenchmarkSimpleRTree_Load/10-4      	  500000	      2502 ns/op	    2177 B/op	       7 allocs/op
+    BenchmarkSimpleRTree_Load/1000-4    	    5000	    499785 ns/op	   99738 B/op	       7 allocs/op
+    BenchmarkSimpleRTree_Load/10000-4   	     200	   6317951 ns/op	  968274 B/op	       8 allocs/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  44503613 ns/op	 9602761 B/op	       8 allocs/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  70462260 ns/op	19203811 B/op	       8 allocs/op
 
 
 ## Benchmark Compute distances

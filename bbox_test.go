@@ -20,8 +20,8 @@ func TestAvxBBox_Extend(t *testing.T) {
 	for _, tc := range testCases {
 		aB1 := bbox2VectorBBox(tc.b1)
 		aB2 := bbox2VectorBBox(tc.b2)
-		vectorBBoxExtend(&aB1, &aB2)
-		assert.Equal(t, tc.expected, aB1.toBBox())
+		result := vectorBBoxExtend(aB1, aB2)
+		assert.Equal(t, tc.expected, result.toBBox())
 		assert.Equal(t, tc.expected, tc.b1.extend(tc.b2))
 	}
 }
