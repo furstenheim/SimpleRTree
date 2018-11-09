@@ -44,6 +44,7 @@ type SimpleRTree struct {
 	nodes   []Node
 	points  FlatPoints
 	built   bool
+	childNodes [MAX_POSSIBLE_SIZE]computeDistanceItem
 	queuePool         sync.Pool
 	unsafeQueue         searchQueue // Only used in unsafe mode
 	sorterBuffer      []int // floyd rivest requires a bucket, we allocate it once and reuse
@@ -154,19 +155,22 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 			}
 		default:
 			f := unsafe.Pointer(item.node.firstChild)
+			childNodes := r.childNodes
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
-				if mind <= distanceUpperBound {
-					sq.Push(searchQueueItem{node: n, distance: mind})
-				}
-				// Distance to one of the corners is lower than the upper bound
-				// so there must be a point at most within distanceUpperBound
-				if maxd < distanceUpperBound {
-					distanceUpperBound = maxd
-				}
+				insertNode(&childNodes, computeDistanceItem{node: n, mind: mind, maxd: maxd}, i)
 				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+			}
+			// childnodes is sorted by maxd
+			if childNodes[0].maxd < distanceUpperBound {
+				distanceUpperBound = childNodes[0].maxd
+			}
+			for i = 0; i < item.node.nChildren; i++ {
+				if childNodes[i].mind <= distanceUpperBound {
+					sq.Push(searchQueueItem{node: childNodes[i].node, distance: childNodes[i].mind})
+				}
 			}
 		}
 	}
@@ -184,6 +188,8 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	d1squared = distanceUpperBound
 	return
 }
+
+
 
 func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	if points.Len() == 0 {
