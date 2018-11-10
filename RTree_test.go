@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+	"sync"
 )
 
 func TestNode_ComputeDistances(t *testing.T) {
@@ -120,13 +121,26 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	}
 	fp := FlatPoints(points)
 	r := New().Load(fp)
+	rtreePool := &sync.Pool{}
+	r2 := NewWithOptions(Options{
+		RTreePool: rtreePool,
+	})
+	r2.Load(fp)
+	r2.Destroy()
+	// Check pooling works correctly
+	r3 := NewWithOptions(Options{
+		RTreePool: rtreePool,
+	}).Load(fp)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
 		x1, y1, _, found := r.FindNearestPoint(x, y)
+		x3, y3, _, found := r3.FindNearestPoint(x, y)
 		assert.True(t, found, "We should always find nearest")
 		x2, y2, _ := fp.linearClosestPoint(x, y)
 		assert.Equal(t, x1, x2, "X coordinate")
 		assert.Equal(t, y1, y2, "Y coordinate")
+		assert.Equal(t, x3, x2, "X coordinate pooled")
+		assert.Equal(t, y3, y2, "Y coordinate pooled")
 	}
 
 }

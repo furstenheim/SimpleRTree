@@ -27,6 +27,11 @@ bench-graph-load:
 	go test -run=XXX -bench Load -cpuprofile benchmarks/$$(git rev-parse HEAD)/cpu.prof
 	go tool pprof -svg SimpleRTree.test benchmarks/$$(git rev-parse HEAD)/cpu.prof > benchmarks/$$(git rev-parse HEAD)/cpu.svg
 	echo "File at benchmarks/$$(git rev-parse HEAD)/cpu.svg"
+bench-graph-load-mem:
+	mkdir -p benchmarks/$$(git rev-parse HEAD)
+	go test -run=XXX -bench Load -memprofile benchmarks/$$(git rev-parse HEAD)/heap.prof
+	go tool pprof -lines -sample_index=alloc_objects -svg SimpleRTree.test benchmarks/$$(git rev-parse HEAD)/heap.prof > benchmarks/$$(git rev-parse HEAD)/heap.svg
+	echo "File at benchmarks/$$(git rev-parse HEAD)/heap.svg"
 
 bench-compute-distances:
 	go test -run=Compute -bench Compute

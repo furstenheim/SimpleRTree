@@ -27,14 +27,18 @@ const MAX_POSSIBLE_SIZE = 9
 
 type nodeType int8
 
+type pooledMem struct {
+	sorterBuffer []int
+	sq searchQueue
+	nodes []Node
+}
+
 type Options struct {
 	// Set this parameter to true if you only intend to access the R tree from one go routine
 	UnsafeConcurrencyMode bool
 	MAX_ENTRIES int
-	// base array is []Node
-	BaseArrayPool *sync.Pool
-	// sorterBuffer is []int
-	SorterBufferPool *sync.Pool
+	// pool for reused objects
+	RTreePool *sync.Pool
 }
 
 var NODE_SIZE = unsafe.Sizeof(Node{})
@@ -84,11 +88,14 @@ func NewWithOptions(options Options) *SimpleRTree {
 
 // Free up resources in case they were lent
 func (r *SimpleRTree) Destroy () {
-	if r.options.BaseArrayPool != nil {
-		r.options.BaseArrayPool.Put(r.nodes)
-	}
-	if r.options.SorterBufferPool != nil {
-		r.options.SorterBufferPool.Put(r.sorterBuffer)
+	if r.options.RTreePool != nil {
+		r.options.RTreePool.Put(
+			&pooledMem{
+				sorterBuffer: r.sorterBuffer,
+				sq: r.unsafeQueue,
+				nodes: r.nodes,
+			},
+		)
 	}
 }
 
@@ -197,51 +204,47 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	}
 	r.built = true
 
-	isSortedBufferSet := false
-	if r.options.SorterBufferPool != nil {
-		sorterBufferCandidate := r.options.SorterBufferPool.Get()
-		if sorterBufferCandidate != nil {
-			sorterBufferCandidateArray := sorterBufferCandidate.([]int)
-			if cap(sorterBufferCandidateArray) >= r.options.MAX_ENTRIES+1 {
-				r.sorterBuffer = sorterBufferCandidateArray[0: 0]
-				isSortedBufferSet = true
-			}
+	isPooledMemReceived := false
+	var rtreePooledMem *pooledMem
+	if r.options.RTreePool != nil {
+		rtreePoolMemCandidate := r.options.RTreePool.Get()
+		if rtreePoolMemCandidate != nil {
+			rtreePooledMem = rtreePoolMemCandidate.(*pooledMem)
+			isPooledMemReceived = true
 		}
 	}
-	if !isSortedBufferSet {
+	if isPooledMemReceived && cap(rtreePooledMem.sorterBuffer) >= r.options.MAX_ENTRIES+1 {
+		r.sorterBuffer = rtreePooledMem.sorterBuffer[0: 0]
+	} else {
 		r.sorterBuffer = make([]int, 0, r.options.MAX_ENTRIES+1)
 	}
-	rootNodeConstruct := r.build(points, isSorted)
-	if r.options.UnsafeConcurrencyMode {
-		r.unsafeQueue = make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+	r.points = points
+	if isPooledMemReceived && cap(rtreePooledMem.nodes) >= computeSize(points.Len()) {
+		r.nodes = rtreePooledMem.nodes[0: 0]
 	} else {
-		r.queuePool = sync.Pool{
-			New: func () interface {} {
-				return make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
-			},
+		r.nodes = make([]Node, 0, computeSize(points.Len()))
+	}
+
+	rootNodeConstruct := r.build(points, isSorted)
+	if isPooledMemReceived && r.options.UnsafeConcurrencyMode && cap(rtreePooledMem.sq) >= rootNodeConstruct.height*r.options.MAX_ENTRIES {
+		r.unsafeQueue = rtreePooledMem.sq
+	} else {
+		if r.options.UnsafeConcurrencyMode {
+			r.unsafeQueue = make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+		} else {
+			r.queuePool = sync.Pool{
+				New: func () interface {} {
+					return make(searchQueue, rootNodeConstruct.height*r.options.MAX_ENTRIES)
+				},
+			}
+			firstQueue := r.queuePool.Get()
+			r.queuePool.Put(firstQueue)
 		}
-		firstQueue := r.queuePool.Get()
-		r.queuePool.Put(firstQueue)
 	}
 	return r
 }
 
 func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
-	r.points = points
-	isBaseArraySet := false
-	if r.options.BaseArrayPool != nil {
-		baseArrayCandidate := r.options.BaseArrayPool.Get()
-		if baseArrayCandidate != nil {
-			baseArrayCandidateArray := baseArrayCandidate.([]Node)
-			if cap(baseArrayCandidateArray) >= computeSize(points.Len()) {
-				r.nodes = baseArrayCandidateArray[0: 0]
-				isBaseArraySet = true
-			}
-		}
-	}
-	if !isBaseArraySet {
-		r.nodes = make([]Node, 0, computeSize(points.Len()))
-	}
 	r.nodes = append(r.nodes, Node{})
 	rootNodeConstruct := nodeConstruct{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
