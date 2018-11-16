@@ -52,20 +52,19 @@ These are the benchmarks for finding the nearest point once the index has been b
 
 These are the benchmarks for the initial load
 
-    BenchmarkSimpleRTree_Load/10-4      	  500000	      3033 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	    3000	    515000 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     300	   4333039 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  45430695 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  78284182 ns/op
+    BenchmarkSimpleRTree_Load/10-4      	  500000	      2206 ns/op
+    BenchmarkSimpleRTree_Load/1000-4    	   10000	    262154 ns/op
+    BenchmarkSimpleRTree_Load/10000-4   	     500	   3847292 ns/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  36191977 ns/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  72849948 ns/op
 
 ### Benchmark Load mem
 
-    BenchmarkSimpleRTree_Load/10-4      	  500000	      2502 ns/op	    2177 B/op	       7 allocs/op
-    BenchmarkSimpleRTree_Load/1000-4    	    5000	    499785 ns/op	   99738 B/op	       7 allocs/op
-    BenchmarkSimpleRTree_Load/10000-4   	     200	   6317951 ns/op	  968274 B/op	       8 allocs/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  44503613 ns/op	 9602761 B/op	       8 allocs/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  70462260 ns/op	19203811 B/op	       8 allocs/op
-
+    BenchmarkSimpleRTree_Load/10-4      	 1000000	      2205 ns/op	    2048 B/op	       7 allocs/op
+    BenchmarkSimpleRTree_Load/1000-4    	   10000	    262363 ns/op	   83350 B/op	       7 allocs/op
+    BenchmarkSimpleRTree_Load/10000-4   	     500	   3784520 ns/op	  804430 B/op	       7 allocs/op
+    BenchmarkSimpleRTree_Load/100000-4  	      30	  41201134 ns/op	 8005321 B/op	       8 allocs/op
+    BenchmarkSimpleRTree_Load/200000-4  	      20	  75697528 ns/op	16008905 B/op	       8 allocs/op
 
 ## Benchmark Compute distances
 

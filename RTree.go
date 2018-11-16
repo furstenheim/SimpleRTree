@@ -55,7 +55,9 @@ type SimpleRTree struct {
 type Node struct {
 	nodeType   nodeType
 	nChildren  int8
-	firstChild *Node
+	// Here we save firstChild - firstNode. That means that there is there is a theoretical upper limit to the tree of
+	// maxuint32 / node_size = 4294967295 / 40 = 107374182 ~ 100M
+	firstChildOffset uint32
 	BBox       VectorBBox
 }
 
@@ -125,6 +127,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	sq.Init()
 
 	rootNode := &r.nodes[0]
+	unsafeRootNode := uintptr(unsafe.Pointer(rootNode))
 	mind, maxd := vectorComputeDistances(rootNode.BBox, x, y)
 	if maxd < distanceUpperBound {
 		distanceUpperBound = maxd
@@ -148,7 +151,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 			minItem = item
 			found = true
 		case PRELEAF:
-			f := unsafe.Pointer(item.node.firstChild)
+			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
@@ -160,7 +163,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
 			}
 		default:
-			f := unsafe.Pointer(item.node.firstChild)
+			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
 			var i int8
 			for i = 0; i < item.node.nChildren; i++ {
 				n := (*Node)(f)
@@ -195,6 +198,9 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	if points.Len() == 0 {
 		return r
+	}
+	if points.Len() >= math.MaxUint32 / int(NODE_SIZE) {
+		log.Fatal("Exceded maximum possible size", math.MaxUint32 / int(NODE_SIZE))
 	}
 	if r.options.MAX_ENTRIES == 0 {
 		panic("MAX entries was 0")
@@ -294,7 +300,7 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 			nodeConstructIndex++
 		}
 	}
-	n.firstChild = &r.nodes[firstChildIndex]
+	n.firstChildOffset = uint32(firstChildIndex) * uint32(NODE_SIZE)
 	n.nChildren = nodeConstructIndex
 	// compute children
 	var i int8
@@ -336,7 +342,7 @@ func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) VectorBBox {
 		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
 		r.nodes = append(r.nodes, child)
 	}
-	n.firstChild = &r.nodes[firstChildIndex]
+	n.firstChildOffset = uint32(firstChildIndex) * uint32(NODE_SIZE)
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
 	n.BBox = vb
@@ -388,7 +394,7 @@ func (r *SimpleRTree) toJSONAcc(n *Node, text []string) []string {
 		log.Fatal(err)
 	}
 	text = append(text, tpl.String())
-	f := unsafe.Pointer(n.firstChild)
+	f := unsafe.Pointer(uintptr(unsafe.Pointer(&r.nodes[0])) + uintptr(n.firstChildOffset))
 	var i int8
 	for i = 0; i < n.nChildren; i++ {
 		cn := (*Node)(f)
