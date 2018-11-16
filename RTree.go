@@ -153,7 +153,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 		case PRELEAF:
 			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
 			var i int8
-			for i = 0; i < item.node.nChildren; i++ {
+			for i = item.node.nChildren; i>0; i-- {
 				n := (*Node)(f)
 				d := n.computeLeafDistance(x, y)
 				if d <= distanceUpperBound {
@@ -165,7 +165,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 		default:
 			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
 			var i int8
-			for i = 0; i < item.node.nChildren; i++ {
+			for i = item.node.nChildren; i>0; i-- {
 				n := (*Node)(f)
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
