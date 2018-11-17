@@ -49,29 +49,6 @@ These are the benchmarks for finding the nearest point once the index has been b
     BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	  500000	      2441 ns/op
 
 
-### Benchmark Load CPU
-
-These are the benchmarks for the initial load
-
-    BenchmarkSimpleRTree_Load/10-4      	  500000	      2206 ns/op
-    BenchmarkSimpleRTree_Load/1000-4    	   10000	    262154 ns/op
-    BenchmarkSimpleRTree_Load/10000-4   	     500	   3847292 ns/op
-    BenchmarkSimpleRTree_Load/100000-4  	      30	  36191977 ns/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  72849948 ns/op
-
-### Benchmark Load mem
-
-    BenchmarkSimpleRTree_Load/10-4      	 1000000	      2454 ns/op	    1853 B/op	       7 allocs/op
-    BenchmarkSimpleRTree_Load/1000-4    	   10000	    385690 ns/op	   42966 B/op	       7 allocs/op
-    BenchmarkSimpleRTree_Load/10000-4   	     300	   5489529 ns/op	  403803 B/op	       7 allocs/op
-    BenchmarkSimpleRTree_Load/100000-4  	      20	  55128015 ns/op	 4008522 B/op	       8 allocs/op
-    BenchmarkSimpleRTree_Load/200000-4  	      20	  94483116 ns/op	 8006218 B/op	       8 allocs/op
-
-## Benchmark Compute distances
-
-    Benchmark_ComputeDistances-4         	50000000	        23.9 ns/op
-    Benchmark_VectorComputeDistances-4   	100000000	        12.8 ns/op
-
 
 
 
