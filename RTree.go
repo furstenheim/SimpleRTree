@@ -57,7 +57,7 @@ type pooledMem struct {
 // Structure used to constructing the ndoe
 type nodeConstruct struct {
 	height     int
-	start, end int // index in the underlying array
+	start, end uint32 // index in the underlying array
 }
 
 // Create an RTree index from an array of points
@@ -253,8 +253,8 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 	r.nodes = append(r.nodes, Node{})
 	rootNodeConstruct := nodeConstruct{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
-		start:  0,
-		end:    points.Len(),
+		start:  uint32(0),
+		end:    uint32(points.Len()),
 	}
 
 	r.buildNodeDownwards(&r.nodes[0], rootNodeConstruct, isSorted)
@@ -262,7 +262,7 @@ func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
 }
 
 func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted bool) VectorBBox {
-	N := nc.end - nc.start
+	N := int(nc.end - nc.start)
 	// target number of root entries to maximize storage utilization
 	var M float64
 	if N <= r.options.MAX_ENTRIES { // Leaf node
@@ -274,9 +274,10 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	N2 := int(math.Ceil(float64(N) / M))
 	N1 := N2 * int(math.Ceil(math.Sqrt(M)))
 
+	start := int(nc.start)
 	// parent node might already be sorted. In that case we avoid double computation
 	if !isSorted {
-		sortX := xSorter{n: n, points: r.points, start: nc.start, end: nc.end, bucketSize: N1}
+		sortX := xSorter{n: n, points: r.points, start: start, end: int(nc.end), bucketSize: N1}
 		sortX.Sort(r.sorterBuffer)
 	}
 	nodeConstructs := [MAX_POSSIBLE_SIZE]nodeConstruct{}
@@ -284,14 +285,14 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 	firstChildIndex := len(r.nodes)
 	for i := 0; i < N; i += N1 {
 		right2 := minInt(i+N1, N)
-		sortY := ySorter{n: n, points: r.points, start: nc.start + i, end: nc.start + right2, bucketSize: N2}
+		sortY := ySorter{n: n, points: r.points, start: start+ i, end: start+ right2, bucketSize: N2}
 		sortY.Sort(r.sorterBuffer)
 		for j := i; j < right2; j += N2 {
 			right3 := minInt(j+N2, right2)
 			child := Node{}
 			childC := nodeConstruct{
-				start:  nc.start + j,
-				end:    nc.start + right3,
+				start:  nc.start + uint32(j),
+				end:    nc.start + uint32(right3),
 				height: nc.height - 1,
 			}
 			r.nodes = append(r.nodes, child)
@@ -315,13 +316,15 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 
 func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) VectorBBox {
 	// Here we follow original rbush implementation.
-	firstChildIndex := nc.start
+	start := int(nc.start)
+	end := int(nc.end)
+	firstChildIndex := start
 
-	x0, y0 := r.points.GetPointAt(nc.start)
+	x0, y0 := r.points.GetPointAt(start)
 	vb := VectorBBox{x0, y0, x0, y0}
 
-	for i := 1; i < nc.end-nc.start; i++ {
-		x1, y1 := r.points.GetPointAt(nc.start + i)
+	for i := end-start - 1; i > 0; i-- {
+		x1, y1 := r.points.GetPointAt(start + i)
 		vb1 := [4]float64{
 			x1,
 			y1,
