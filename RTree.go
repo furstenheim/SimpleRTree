@@ -17,31 +17,8 @@ type Interface interface {
 	Swap(i, j int)                     // Swap elements with indexes i and j
 }
 
-const (
-	DEFAULT = iota
-	LEAF
-	PRELEAF
-)
-
 const MAX_POSSIBLE_SIZE = 9
 
-type nodeType int8
-
-type pooledMem struct {
-	sorterBuffer []int
-	sq searchQueue
-	nodes []Node
-}
-
-type Options struct {
-	// Set this parameter to true if you only intend to access the R tree from one go routine
-	UnsafeConcurrencyMode bool
-	MAX_ENTRIES int
-	// pool for reused objects
-	RTreePool *sync.Pool
-}
-
-var NODE_SIZE = unsafe.Sizeof(Node{})
 
 type SimpleRTree struct {
 	options Options
@@ -59,6 +36,28 @@ type Node struct {
 	// maxuint32 / node_size = 4294967295 / 40 = 107374182 ~ 100M
 	firstChildOffset uint32
 	BBox       VectorBBox
+}
+type Options struct {
+	// Set this parameter to true if you only intend to access the R tree from one go routine
+	UnsafeConcurrencyMode bool
+	MAX_ENTRIES int
+	// pool for reused objects
+	RTreePool *sync.Pool
+}
+type nodeType int8
+const (
+	DEFAULT = iota
+	PRELEAF
+)
+
+var NODE_SIZE = unsafe.Sizeof(Node{})
+var FLAT_POINT_SIZE =unsafe.Sizeof([2]float64{})
+var FLOAT_SIZE = uintptr(unsafe.Sizeof([1]float64{}))
+
+type pooledMem struct {
+	sorterBuffer []int
+	sq searchQueue
+	nodes []Node
 }
 
 // Structure used to constructing the ndoe
@@ -127,6 +126,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	sq.Init()
 
 	rootNode := &r.nodes[0]
+	unsafeRootLeafNode := uintptr(unsafe.Pointer(&r.points[0]))
 	unsafeRootNode := uintptr(unsafe.Pointer(rootNode))
 	mind, maxd := vectorComputeDistances(rootNode.BBox, x, y)
 	if maxd < distanceUpperBound {
@@ -144,23 +144,28 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 			break
 		}
 
-		switch item.node.nodeType {
-		case LEAF:
+		if item.node == nil { // Leaf
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
 			minItem = item
 			found = true
+			continue
+		}
+		switch item.node.nodeType {
 		case PRELEAF:
-			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
+			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(item.node.firstChildOffset))
 			var i int8
 			for i = item.node.nChildren; i>0; i-- {
-				n := (*Node)(f)
-				d := n.computeLeafDistance(x, y)
+				px := *(*float64)(f)
+				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
+				py := *(*float64)(f)
+
+				d := computeLeafDistance(px, py, x, y)
 				if d <= distanceUpperBound {
-					sq.Push(searchQueueItem{node: n, distance: d})
+					sq.Push(searchQueueItem{node: nil, px: px, py: py, distance: d})
 					distanceUpperBound = d
 				}
-				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
 			}
 		default:
 			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
@@ -189,8 +194,8 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	if !found {
 		return
 	}
-	x1 = minItem.node.BBox[VECTOR_BBOX_MAX_X]
-	y1 = minItem.node.BBox[VECTOR_BBOX_MAX_Y]
+	x1 = minItem.px
+	y1 = minItem.py
 	d1squared = distanceUpperBound
 	return
 }
@@ -316,15 +321,10 @@ func (r *SimpleRTree) buildNodeDownwards(n *Node, nc nodeConstruct, isSorted boo
 
 func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) VectorBBox {
 	// Here we follow original rbush implementation.
-	firstChildIndex := len(r.nodes)
+	firstChildIndex := nc.start
 
 	x0, y0 := r.points.GetPointAt(nc.start)
 	vb := VectorBBox{x0, y0, x0, y0}
-	child0 := Node{
-		nodeType: LEAF,
-		BBox: vb,
-	}
-	r.nodes = append(r.nodes, child0)
 
 	for i := 1; i < nc.end-nc.start; i++ {
 		x1, y1 := r.points.GetPointAt(nc.start + i)
@@ -334,15 +334,9 @@ func (r *SimpleRTree) setLeafNode(n *Node, nc nodeConstruct) VectorBBox {
 			x1,
 			y1,
 		}
-		child := Node{
-			nodeType: LEAF,
-			BBox: vb1,
-		}
-		vb = vectorBBoxExtend(vb, child.BBox)
-		// Note this is not thread safe. At the moment we are doing it in one goroutine so we are safe
-		r.nodes = append(r.nodes, child)
+		vb = vectorBBoxExtend(vb, vb1)
 	}
-	n.firstChildOffset = uint32(firstChildIndex) * uint32(NODE_SIZE)
+	n.firstChildOffset = uint32(firstChildIndex) * uint32(FLAT_POINT_SIZE) // We access leafs on the original array
 	n.nChildren = int8(nc.end - nc.start)
 	n.nodeType = PRELEAF
 	n.BBox = vb
@@ -405,9 +399,9 @@ func (r *SimpleRTree) toJSONAcc(n *Node, text []string) []string {
 }
 
 // node is point, there is only one distance
-func (n *Node) computeLeafDistance(x, y float64) float64 {
-	return (x-n.BBox[VECTOR_BBOX_MIN_X])*(x-n.BBox[VECTOR_BBOX_MIN_X]) +
-		(y-n.BBox[VECTOR_BBOX_MIN_Y])*(y-n.BBox[VECTOR_BBOX_MIN_Y])
+func computeLeafDistance(px, py, x, y float64) float64 {
+	return (x-px)*(x-px) +
+		(y-py)*(y-py)
 }
 func computeDistances(bbox VectorBBox, x, y float64) (mind, maxd float64) {
 	// TODO try simd
@@ -492,5 +486,5 @@ func sortFloats(x1, x2 float64) (x3, x4 float64) {
 }
 
 func computeSize(n int) (size int) {
-	return 2 * n
+	return n
 }

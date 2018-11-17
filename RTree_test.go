@@ -171,15 +171,15 @@ func TestComputeSize(t *testing.T) {
 	}{
 		{
 			10,
-			13,
+			3,
 		},
 		{
 			1000,
-			1129,
+			129,
 		},
 		{
 			11250,
-			11277,
+			1277,
 		},
 	}
 	for _, tc := range testCases {
