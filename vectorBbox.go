@@ -29,7 +29,6 @@ func vectorBBoxExtend(b1, b2 VectorBBox) VectorBBox{
 		maxFloat(b1[3], b2[3]),
 	}
 }
-func vectorBBoxExtendASM(b1, b2 VectorBBox) VectorBBox
 
 func (b1 VectorBBox) toBBox() BBox {
 	return BBox{
