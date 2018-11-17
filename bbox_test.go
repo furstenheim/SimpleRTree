@@ -21,7 +21,9 @@ func TestAvxBBox_Extend(t *testing.T) {
 		aB1 := bbox2VectorBBox(tc.b1)
 		aB2 := bbox2VectorBBox(tc.b2)
 		result := vectorBBoxExtend(aB1, aB2)
+		result2 := vectorBBoxExtendASM(aB1, aB2)
 		assert.Equal(t, tc.expected, result.toBBox())
+		assert.Equal(t, tc.expected, result2.toBBox())
 		assert.Equal(t, tc.expected, tc.b1.extend(tc.b2))
 	}
 }
