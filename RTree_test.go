@@ -360,8 +360,8 @@ func BenchmarkSimpleRTree_LoadMemory(b *testing.B) {
 	}
 }
 
-func (fp FlatPoints) linearClosestPoint(x, y float64) (x1, y1, d1 float64) {
-	d := math.Inf(1)
+func (fp FlatPoints) linearClosestPoint(x, y float64) (x1, y1, d float64) {
+	d = math.Inf(1)
 	for i := 0; i < fp.Len(); i++ {
 		x2, y2 := fp.GetPointAt(i)
 		if d1 := math.Pow(x-x2, 2) + math.Pow(y-y2, 2); d1 < d {

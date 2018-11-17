@@ -11,12 +11,6 @@ import (
 	"sync"
 )
 
-type Interface interface {
-	GetPointAt(i int) (x1, y1 float64) // Retrieve point at position i
-	Len() int                          // Number of elements
-	Swap(i, j int)                     // Swap elements with indexes i and j
-}
-
 const MAX_POSSIBLE_SIZE = 9
 
 

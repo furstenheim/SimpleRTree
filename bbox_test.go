@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestAvxBBox_Extend(t *testing.T) {
+func TestBBox_Extend(t *testing.T) {
 	testCases := []struct {
 		b1, b2   BBox
 		expected BBox
