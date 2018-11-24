@@ -108,39 +108,50 @@ func (h searchQueue) Fix(i int) {
 }
 
 func (h searchQueue) up(j int) {
+	el0 := h[j]
+	d0 := el0.distance
 	for {
 		i := (j - 1) / 2 // parent
-		if i == j || !h.Less(j, i) {
+		if i == j || !(d0 < h[i].distance) {
 			break
 		}
-		h.Swap(i, j)
+		h[j] = h[i]
 		j = i
 	}
+	h[j] = el0
 }
 
 func (h searchQueue) down(i0, n int) bool {
 	i := i0
+	el0 := h[i]
+	d0 := el0.distance
 	for {
 		j1 := 2*i + 1
 		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
 			break
 		}
 		j := j1 // left child
-		if j2 := j1 + 1; j2 < n && h.Less(j2, j1) {
+		if j2 := j1 + 1; j2 < n && (h[j2].distance < h[j1].distance) {
 			j = j2 // = 2*i + 2  // right child
 		}
-		if !h.Less(j, i) {
+		if !(h[j].distance < d0) {
 			break
 		}
-		h.Swap(i, j)
+		h[i] = h[j]
 		i = j
 	}
+	h[i] = el0
 	return i > i0
 }
 
-func (sq searchQueue) Less(i, j int) bool {
+func (sq searchQueue) Less(el1, el2 searchQueueItem) bool {
 	// We want to pop element with smaller distance
-	return sq[i].distance < sq[j].distance
+	return el1.distance < el2.distance
+}
+
+func (sq searchQueue) LessD(d1, d2 float64) bool {
+	// We want to pop element with smaller distance
+	return d1 < d2
 }
 
 func (sq *searchQueue) Empty() {
