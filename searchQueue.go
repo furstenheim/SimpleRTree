@@ -78,8 +78,8 @@ func (h *searchQueue) Pop() searchQueueItem {
 	h.Swap(0, n)
 	h.down(0, n)
 	arr := *h
-	item := arr[h.Len()-1]
-	*h = arr[0 : h.Len()-1]
+	item := arr[n]
+	*h = arr[0 : n]
 	return item
 }
 
