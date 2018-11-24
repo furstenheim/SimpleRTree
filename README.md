@@ -41,12 +41,12 @@ Is a slightly more efficient rtree, but which cannot be accessed from more than 
 
 These are the benchmarks for finding the nearest point once the index has been built.
 
-    BenchmarkSimpleRTree_FindNearestPoint/10-4      	10000000	       242 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 2000000	       742 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 1000000	      1047 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      1380 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      1580 ns/op
-    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	 1000000	      1789 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10-4      	 5000000	       233 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 2000000	       709 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 2000000	       997 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      1381 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      1542 ns/op
+    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	 1000000	      1795 ns/op
 
 
 
