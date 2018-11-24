@@ -6,9 +6,6 @@ type searchQueueItem struct {
 	distance float64
 }
 
-const LOG_HEAP_SIZE = 3
-const HEAP_SIZE = 1 << LOG_HEAP_SIZE
-
 type searchQueue []searchQueueItem
 
 func (sq searchQueue) Len() int {
@@ -16,14 +13,11 @@ func (sq searchQueue) Len() int {
 }
 
 /**
-Inlined heap for improved performance
+Linear heap for performance boost (actually log in len(points)
+
 **/
 func (h searchQueue) Init() {
-	// heapify
-	n := h.Len()
-	for i := (n - 1) >> LOG_HEAP_SIZE; i >= 0; i-- {
-		h.down(i, n)
-	}
+	// We start with empty queues
 }
 
 func (sq searchQueue) Swap(i, j int) {
@@ -31,17 +25,14 @@ func (sq searchQueue) Swap(i, j int) {
 }
 
 // Push pushes the element x onto the heap. The complexity is
-// O(log(n)) where n = h.Len().
-//
+// O(1)
 func (h *searchQueue) Push(x searchQueueItem) {
 	*h = append(*h, x)
 	h.up(h.Len() - 1)
 }
 
 // Pop removes the minimum element (according to Less) from the heap
-// and returns it. The complexity is O(log(n)) where n = h.Len().
-// It is equivalent to Remove(h, 0).
-//
+// and returns it. The complexity is O(n) where n = h.Len().
 func (h *searchQueue) Pop() searchQueueItem {
 	n := h.Len() - 1
 	h.Swap(0, n)
@@ -53,36 +44,16 @@ func (h *searchQueue) Pop() searchQueueItem {
 }
 
 func (h searchQueue) up(j int) {
-	for {
-		i := (j - 1) >> LOG_HEAP_SIZE // parent
-		if i < 0 || !h.Less(j, i) {
-			break
-		}
-		h.Swap(j, i)
-		j = i
+	if h.Less(j, 0) {
+		h.Swap(0, j)
 	}
 }
 
 func (h searchQueue) down(i0, n int) {
-	// child array to store indexes of all the children of given node
-	i := i0
-	for {
-		minChildIndex := i
-		// childrenIndexes[i] = -1 if node is leaf children
-		for k, j:= 1, i << LOG_HEAP_SIZE + 1; k <=HEAP_SIZE; k, j = k+1, j+1 {
-			if j >= n {
-				break
-			}
-			if h.Less(j, minChildIndex) {
-				minChildIndex = j
-			}
+	for j := 1; j < n; j++ {
+		if h.Less(j, 0) {
+			h.Swap(0, j)
 		}
-		if minChildIndex == i { // leaf node or not smaller
-			break
-		}
-		// Swap if min child is smaller than the key of node
-		h.Swap(i, minChildIndex)
-		i = minChildIndex
 	}
 }
 
