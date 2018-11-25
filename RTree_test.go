@@ -294,6 +294,7 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 		{"100000", 100000},
 		{"200000", 200000},
 		{"1000000", 1000000},
+		{"10000000", 10000000},
 	}
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {

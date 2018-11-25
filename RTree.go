@@ -121,55 +121,56 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	rootNode := &r.nodes[0]
 	unsafeRootLeafNode := uintptr(unsafe.Pointer(&r.points[0]))
 	unsafeRootNode := uintptr(unsafe.Pointer(rootNode))
-	sq.Push(searchQueueItem{node: rootNode, distance: 0}) // we don't need distance for first node
+	sq = append(sq, searchQueueItem{node: rootNode, distance: 0}) // we don't need distance for first node
 
 	for sq.Len() > 0 {
-		item := sq.Pop()
+		sq.PreparePop()
+		item := sq[sq.Len() - 1]
+		sq = sq[0: sq.Len() - 1]
 		currentDistance := item.distance
 		if found && currentDistance > distanceLowerBound {
 			break
 		}
 
-		if item.node != nil {
-			switch item.node.nodeType {
-			case DEFAULT:
-				f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
-				var i int8
-				for i = item.node.nChildren; i > 0; i-- {
-					n := (*Node)(f)
-					mind, maxd := vectorComputeDistances(n.BBox, x, y)
-					if mind <= distanceUpperBound {
-						sq.Push(searchQueueItem{node: n, distance: mind})
-					}
-					// Distance to one of the corners is lower than the upper bound
-					// so there must be a point at most within distanceUpperBound
-					if maxd < distanceUpperBound {
-						distanceUpperBound = maxd
-					}
-					f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
-				}
-			case PRELEAF:
-				f := unsafe.Pointer(unsafeRootLeafNode + uintptr(item.node.firstChildOffset))
-				var i int8
-				for i = item.node.nChildren; i > 0; i-- {
-					px := *(*float64)(f)
-					f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
-					py := *(*float64)(f)
-
-					d := computeLeafDistance(px, py, x, y)
-					if d <= distanceUpperBound {
-						sq.Push(searchQueueItem{node: nil, px: px, py: py, distance: d})
-						distanceUpperBound = d
-					}
-					f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
-				}
-			}
-		} else {
-			// Leaf
+		if item.node == nil { // Leaf
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
 			minItem = item
 			found = true
+			continue
+		}
+		switch item.node.nodeType {
+		case PRELEAF:
+			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(item.node.firstChildOffset))
+			var i int8
+			for i = item.node.nChildren; i>0; i-- {
+				px := *(*float64)(f)
+				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
+				py := *(*float64)(f)
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: nil, px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
+			}
+		default:
+			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
+			var i int8
+			for i = item.node.nChildren; i>0; i-- {
+				n := (*Node)(f)
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: n, distance: mind})
+				}
+				// Distance to one of the corners is lower than the upper bound
+				// so there must be a point at most within distanceUpperBound
+				if maxd < distanceUpperBound {
+					distanceUpperBound = maxd
+				}
+				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+			}
 		}
 	}
 
