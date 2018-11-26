@@ -1,14 +1,10 @@
 package SimpleRTree
 
-const FIRST_CHILD_OFFSET_INDEX = 2
-const PX_INDEX = 8
-const PY_INDEX = 16
 type searchQueueItem struct {
-	// nodeType   nodeType
-	// nChildren  int8
-	// firstChildOffset uint32
-	// px, py float64 // points are not stored in nodes so we need to track them explicitly
-	data [24]byte
+	nodeType   nodeType
+	nChildren  int8
+	firstChildOffset uint32
+	px, py float64 // points are not stored in nodes so we need to track them explicitly
 	distance float64
 }
 

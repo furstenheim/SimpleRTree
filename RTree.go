@@ -9,7 +9,6 @@ import (
 	"text/template"
 	"unsafe"
 	"sync"
-	"encoding/binary"
 )
 
 const MAX_POSSIBLE_SIZE = 9
@@ -123,13 +122,12 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	rootNode := &r.nodes[0]
 	unsafeRootLeafNode := uintptr(unsafe.Pointer(&r.points[0]))
 	unsafeRootNode := uintptr(unsafe.Pointer(rootNode))
-	rootItem := searchQueueItem{
-		data: [24]byte{byte(rootNode.nodeType), byte(rootNode.nChildren)},
+	sq = append(sq, searchQueueItem{
+		nodeType: rootNode.nodeType,
+		nChildren: rootNode.nChildren,
+		firstChildOffset: rootNode.firstChildOffset,
 		distance: 0,
-	}
-	binary.LittleEndian.PutUint32(rootItem.data[FIRST_CHILD_OFFSET_INDEX:], rootNode.firstChildOffset)
-
-	sq = append(sq, rootItem) // we don't need distance for first node
+	}) // we don't need distance for first node
 
 	for sq.Len() > 0 {
 		sq.PreparePop()
@@ -139,10 +137,8 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 		if found && currentDistance > distanceLowerBound {
 			break
 		}
-		itemNodeType := nodeType(item.data[0])
-		itemNChildren:= int8(item.data[1])
-		itemFirstChildOffset:= binary.LittleEndian.Uint32(item.data[FIRST_CHILD_OFFSET_INDEX:])
-		switch itemNodeType {
+
+		switch item.nodeType {
 		case LEAF:
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
@@ -150,37 +146,33 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 			found = true
 			continue
 		case PRELEAF:
-			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(itemFirstChildOffset))
+			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(item.firstChildOffset))
 			var i int8
-			for i = itemNChildren; i>0; i-- {
+			for i = item.nChildren; i>0; i-- {
 				px := *(*float64)(f)
 				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
 				py := *(*float64)(f)
 
 				d := computeLeafDistance(px, py, x, y)
 				if d <= distanceUpperBound {
-					nextItem := searchQueueItem{
-						data: [24]byte{byte(LEAF)}, distance: d}
-					binary.LittleEndian.PutUint64(nextItem.data[PX_INDEX:], math.Float64bits(px))
-					binary.LittleEndian.PutUint64(nextItem.data[PY_INDEX:], math.Float64bits(py))
-					sq = append(sq, nextItem)
+					sq = append(sq, searchQueueItem{nodeType: LEAF, px: px, py: py, distance: d})
 					distanceUpperBound = d
 				}
 				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
 			}
 		default:
-			f := unsafe.Pointer(unsafeRootNode + uintptr(itemFirstChildOffset))
+			f := unsafe.Pointer(unsafeRootNode + uintptr(item.firstChildOffset))
 			var i int8
-			for i = itemNChildren; i>0; i-- {
+			for i = item.nChildren; i>0; i-- {
 				n := (*Node)(f)
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
-					nextItem := searchQueueItem{
-						data: [24]byte{byte(n.nodeType), byte(n.nChildren)},
+					sq = append(sq, searchQueueItem{
+						nodeType: n.nodeType,
+						nChildren: n.nChildren,
+						firstChildOffset: n.firstChildOffset,
 						distance: mind,
-					}
-					binary.LittleEndian.PutUint32(nextItem.data[FIRST_CHILD_OFFSET_INDEX:], n.firstChildOffset)
-					sq = append(sq, nextItem)
+					})
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -202,8 +194,8 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	if !found {
 		return
 	}
-	x1 = math.Float64frombits(binary.LittleEndian.Uint64(minItem.data[PX_INDEX:]))
-	y1 = math.Float64frombits(binary.LittleEndian.Uint64(minItem.data[PY_INDEX:]))
+	x1 = minItem.px
+	y1 = minItem.py
 	d1squared = distanceUpperBound
 	return
 }
