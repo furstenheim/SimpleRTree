@@ -1,10 +1,8 @@
 package SimpleRTree
 
 type searchQueueItem struct {
-	nodeType   nodeType
-	nChildren  int8
-	firstChildOffset uint32
-	px, py float64 // points are not stored in nodes so we need to track them explicitly
+	node     *Node // if nil item carries node
+	px, py float64 // points are not stored in nodes so we need to track them explicitely
 	distance float64
 }
 
