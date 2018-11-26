@@ -42,6 +42,7 @@ type nodeType int8
 const (
 	DEFAULT = iota
 	PRELEAF
+	LEAF
 )
 
 var NODE_SIZE = unsafe.Sizeof(Node{})
@@ -121,7 +122,12 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	rootNode := &r.nodes[0]
 	unsafeRootLeafNode := uintptr(unsafe.Pointer(&r.points[0]))
 	unsafeRootNode := uintptr(unsafe.Pointer(rootNode))
-	sq = append(sq, searchQueueItem{node: rootNode, distance: 0}) // we don't need distance for first node
+	sq = append(sq, searchQueueItem{
+		nodeType: rootNode.nodeType,
+		nChildren: rootNode.nChildren,
+		firstChildOffset: rootNode.firstChildOffset,
+		distance: 0,
+	}) // we don't need distance for first node
 
 	for sq.Len() > 0 {
 		sq.PreparePop()
@@ -132,37 +138,41 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 			break
 		}
 
-		if item.node == nil { // Leaf
+		switch item.nodeType {
+		case LEAF:
 			// we know it is smaller from the previous test
 			distanceLowerBound = currentDistance
 			minItem = item
 			found = true
 			continue
-		}
-		switch item.node.nodeType {
 		case PRELEAF:
-			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(item.node.firstChildOffset))
+			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(item.firstChildOffset))
 			var i int8
-			for i = item.node.nChildren; i>0; i-- {
+			for i = item.nChildren; i>0; i-- {
 				px := *(*float64)(f)
 				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
 				py := *(*float64)(f)
 
 				d := computeLeafDistance(px, py, x, y)
 				if d <= distanceUpperBound {
-					sq = append(sq, searchQueueItem{node: nil, px: px, py: py, distance: d})
+					sq = append(sq, searchQueueItem{nodeType: LEAF, px: px, py: py, distance: d})
 					distanceUpperBound = d
 				}
 				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
 			}
 		default:
-			f := unsafe.Pointer(unsafeRootNode + uintptr(item.node.firstChildOffset))
+			f := unsafe.Pointer(unsafeRootNode + uintptr(item.firstChildOffset))
 			var i int8
-			for i = item.node.nChildren; i>0; i-- {
+			for i = item.nChildren; i>0; i-- {
 				n := (*Node)(f)
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
-					sq = append(sq, searchQueueItem{node: n, distance: mind})
+					sq = append(sq, searchQueueItem{
+						nodeType: n.nodeType,
+						nChildren: n.nChildren,
+						firstChildOffset: n.firstChildOffset,
+						distance: mind,
+					})
 				}
 				// Distance to one of the corners is lower than the upper bound
 				// so there must be a point at most within distanceUpperBound
@@ -177,6 +187,8 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	// return heap
 	if !r.options.UnsafeConcurrencyMode {
 		r.queuePool.Put(sq)
+	} else {
+		r.unsafeQueue = sq
 	}
 
 	if !found {
