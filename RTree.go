@@ -142,25 +142,25 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 		}
 		switch node.nodeType {
 		case PRELEAF:
-			f := unsafe.Pointer(unsafeRootLeafNode + uintptr(node.firstChildOffset))
+			f := unsafeRootLeafNode + uintptr(node.firstChildOffset)
 			var i int8
 			for i = node.nChildren; i>0; i-- {
-				px := *(*float64)(f)
-				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
-				py := *(*float64)(f)
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
 
 				d := computeLeafDistance(px, py, x, y)
 				if d <= distanceUpperBound {
 					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
 					distanceUpperBound = d
 				}
-				f = unsafe.Pointer(uintptr(f) + FLOAT_SIZE)
+				f = f + FLOAT_SIZE
 			}
 		default:
-			f := unsafe.Pointer(unsafeRootNode + uintptr(node.firstChildOffset))
+			f := unsafeRootNode + uintptr(node.firstChildOffset)
 			var i int8
 			for i = node.nChildren; i>0; i-- {
-				n := (*Node)(f)
+				n := (*Node)(unsafe.Pointer(f))
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
 					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
@@ -170,7 +170,7 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 				if maxd < distanceUpperBound {
 					distanceUpperBound = maxd
 				}
-				f = unsafe.Pointer(uintptr(f) + NODE_SIZE)
+				f = f + NODE_SIZE
 			}
 		}
 	}
