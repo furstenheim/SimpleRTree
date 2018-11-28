@@ -1,7 +1,8 @@
 package SimpleRTree
 
+
 type searchQueueItem struct {
-	node     *Node // if nil item carries node
+	node   uintptr   // if nil item carries node
 	px, py float64 // points are not stored in nodes so we need to track them explicitely
 	distance float64
 }
