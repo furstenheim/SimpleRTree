@@ -164,11 +164,11 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
 					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
-				}
-				// Distance to one of the corners is lower than the upper bound
-				// so there must be a point at most within distanceUpperBound
-				if maxd < distanceUpperBound {
-					distanceUpperBound = maxd
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
 				}
 				f = f + NODE_SIZE
 			}
