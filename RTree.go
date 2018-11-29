@@ -143,8 +143,104 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 		switch node.nodeType {
 		case PRELEAF:
 			f := unsafeRootLeafNode + uintptr(node.firstChildOffset)
-			var i int8
-			for i = node.nChildren; i>0; i-- {
+			switch node.nChildren {
+			case 9:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 8:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 7:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 6:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 5:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 4:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 3:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 2:
+				px := *(*float64)(unsafe.Pointer(f))
+				f = f + FLOAT_SIZE
+				py := *(*float64)(unsafe.Pointer(f))
+
+				d := computeLeafDistance(px, py, x, y)
+				if d <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					distanceUpperBound = d
+				}
+				f = f + FLOAT_SIZE
+				fallthrough
+			case 1:
 				px := *(*float64)(unsafe.Pointer(f))
 				f = f + FLOAT_SIZE
 				py := *(*float64)(unsafe.Pointer(f))
@@ -158,8 +254,114 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 			}
 		default:
 			f := unsafeRootNode + uintptr(node.firstChildOffset)
-			var i int8
-			for i = node.nChildren; i>0; i-- {
+			switch node.nChildren {
+			// MAX_POSSIBLE_SIZE
+			case 9:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 8:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 7:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 6:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 5:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 4:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 3:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+							// MAX_POSSIBLE_SIZE
+		distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 2:
+				n := (*Node)(unsafe.Pointer(f))
+				mind, maxd := vectorComputeDistances(n.BBox, x, y)
+				if mind <= distanceUpperBound {
+					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					// Distance to one of the corners is lower than the upper bound
+					// so there must be a point at most within distanceUpperBound
+					if maxd < distanceUpperBound {
+						distanceUpperBound = maxd
+					}
+				}
+				f = f + NODE_SIZE
+				fallthrough
+			case 1:
 				n := (*Node)(unsafe.Pointer(f))
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
@@ -398,7 +600,6 @@ func computeLeafDistance(px, py, x, y float64) float64 {
 		(y-py)*(y-py)
 }
 func computeDistances(bbox VectorBBox, x, y float64) (mind, maxd float64) {
-	// TODO try simd
 	minX := bbox[0]
 	minY := bbox[1]
 	maxX := bbox[2]
