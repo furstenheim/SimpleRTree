@@ -7,15 +7,16 @@ import (
 	"math/rand"
 	"testing"
 	"sync"
+	"fmt"
 )
 
 func TestNode_ComputeDistances(t *testing.T) {
 	ns := []struct {
-		Node
+		rNode
 		mind, maxd float64
 	}{
 		{
-			Node{
+			rNode{
 				BBox: [4]float64{
 					2,
 					3,
@@ -27,7 +28,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 			8,
 		},
 		{
-			Node{
+			rNode{
 				BBox: [4]float64{
 					1,
 					3,
@@ -39,7 +40,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 			13,
 		},
 		{
-			Node{
+			rNode{
 				BBox: [4]float64{
 					1,
 					4,
@@ -51,7 +52,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 			17,
 		},
 		{
-			Node{
+			rNode{
 				BBox: [4]float64{
 					1,
 					1,
@@ -81,9 +82,8 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	r := New().Load(fp)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
-		x1, y1, _, found := r.FindNearestPoint(x, y)
+		x1, y1, _ := r.FindNearestPoint(x, y)
 		x2, y2, _ := fp.linearClosestPoint(x, y)
-		assert.True(t, found, "We should always find nearest")
 		assert.Equal(t, x1, x2)
 		assert.Equal(t, y1, y2)
 	}
@@ -133,9 +133,8 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	}).Load(fp)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
-		x1, y1, _, found := r.FindNearestPoint(x, y)
-		x3, y3, _, found := r3.FindNearestPoint(x, y)
-		assert.True(t, found, "We should always find nearest")
+		x1, y1, _ := r.FindNearestPoint(x, y)
+		x3, y3, _ := r3.FindNearestPoint(x, y)
 		x2, y2, _ := fp.linearClosestPoint(x, y)
 		assert.Equal(t, x1, x2, "X coordinate")
 		assert.Equal(t, y1, y2, "Y coordinate")
@@ -155,8 +154,7 @@ func TestSimpleRTree_FindNearestPointBigUnsafeMode(t *testing.T) {
 	r := NewWithOptions(Options{UnsafeConcurrencyMode:true}).Load(fp)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
-		x1, y1, _, found := r.FindNearestPoint(x, y)
-		assert.True(t, found, "We should always find nearest")
+		x1, y1, _ := r.FindNearestPoint(x, y)
 		x2, y2, _ := fp.linearClosestPoint(x, y)
 		assert.Equal(t, x1, x2, "X coordinate")
 		assert.Equal(t, y1, y2, "Y coordinate")
@@ -308,11 +306,12 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
 				x, y := rand.Float64(), rand.Float64()
-				_, _, _, _ = r.FindNearestPoint(x, y)
+				_, _, _ = r.FindNearestPoint(x, y)
 			}
 		})
 	}
 }
+
 
 func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 	benchmarks := []struct {
@@ -333,7 +332,7 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
 				x, y := rand.Float64(), rand.Float64()
-				_, _, _, _ = r.FindNearestPoint(x, y)
+				_, _, _ = r.FindNearestPoint(x, y)
 			}
 		})
 	}
@@ -372,4 +371,13 @@ func (fp FlatPoints) linearClosestPoint(x, y float64) (x1, y1, d float64) {
 		}
 	}
 	return
+}
+
+func ExampleSimpleRTree_FindNearestPoint() {
+	points := []float64{0, 0, 1, 1, 0, 1}
+	r := New().Load(FlatPoints(points))
+	x1, y1, d := r.FindNearestPoint(3, 3)
+	fmt.Printf("x1 == %f, y1 == %f, d == %f", x1, y1, d)
+	// Output:
+	// x1 == 1.000000, y1 == 1.000000, d == 8.000000
 }

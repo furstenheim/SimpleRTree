@@ -1,5 +1,6 @@
-// This is copy paste from floyd rivest to use concrete types. Perf gain is 2.5x in load times
 package SimpleRTree
+
+// This is copy paste from floyd rivest to use concrete types. Perf gain is 2.5x in load times
 
 import (
 	"math"

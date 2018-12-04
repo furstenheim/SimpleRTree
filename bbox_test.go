@@ -7,13 +7,13 @@ import (
 
 func TestBBox_Extend(t *testing.T) {
 	testCases := []struct {
-		b1, b2   BBox
-		expected BBox
+		b1, b2   rBBox
+		expected rBBox
 	}{
 		{
-			b1:       BBox{0, 0, 1, 1},
-			b2:       BBox{1, 1, 2, 2},
-			expected: BBox{0, 0, 2, 2},
+			b1:       rBBox{0, 0, 1, 1},
+			b2:       rBBox{1, 1, 2, 2},
+			expected: rBBox{0, 0, 2, 2},
 		},
 	}
 
