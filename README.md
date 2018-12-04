@@ -12,30 +12,22 @@ Library works in x86 but it probably won't work in other architectures. PRs are 
 
 ![Simple Recursive Layout](./example.png?raw=true "Simple Recursive Layout")
 
-### Usage
+### Basic Usage
 
 The format of the points is a single array where each too coordinates represent a point
 
-    points := []float64{0.0, 0.0, 1.0, 1.0} // array of two points 0, 0 and 1, 1
-
-The library exposes only two methods. One to load and one to find nearest point
 
     import "SimpleRTree"
+    points := []float64{0.0, 0.0, 1.0, 1.0} // array of two points 0, 0 and 1, 1
 
     fp := SimpleRTree.FlatPoints(points)
     r := SimpleRTree.New().Load(fp)
-    closestX, closestY, distanceSquared, found := r.FindNearestPoint(1.0, 3.0)
-    // 1.0, 1.0, 4.0, true
+    closestX, closestY, distanceSquared := r.FindNearestPoint(1.0, 3.0)
+    // 1.0, 1.0, 4.0
 
-Additionally the tree can be built using options:
 
-    r := SimpleRTree.NewWithOptions(Options{...})
-
-For example:
-
-    NewWithOptions(Options{UnsafeConcurrencyMode:true})
-
-Is a slightly more efficient rtree, but which cannot be accessed from more than one goroutine at the same time.
+## Documentation
+To access the whole documentation you can access the following [link](https://godoc.org/github.com/furstenheim/SimpleRTree#SimpleRTree).
 
 ### Benchmark. CPU
 
