@@ -16,8 +16,8 @@
 //   points := []float64{0.0, 0.0, 1.0, 1.0} // array of two points 0, 0 and 1, 1
 //   fp := SimpleRTree.FlatPoints(points)
 //   r := SimpleRTree.New().Load(fp)
-//   closestX, closestY, distanceSquared, found := r.FindNearestPoint(1.0, 3.0)
-//   // 1.0, 1.0, 4.0, true
+//   closestX, closestY, distanceSquared := r.FindNearestPoint(1.0, 3.0)
+//   // 1.0, 1.0, 4.0
 //
 // Algorithm
 //
@@ -182,7 +182,7 @@ func (r *SimpleRTree) LoadSortedArray(points FlatPoints) *SimpleRTree {
 // to the provided coordinates x and y. The function returns three parameters
 // x1, y1 coordinates of the point
 // d1 distances squared to that point. That is |x1 - x|**2 + |y1 - y|**2
-//  x1, y1, d1 := r.FindNearestPointWithin(x, y, 4)
+//  x1, y1, d1 := r.FindNearestPoint(x, y)
 //  (x1 - x) * (x1 - x) + (y1 - y) * (y1 - y) == d1
 func (r *SimpleRTree) FindNearestPoint(x, y float64) (x1, y1, d1 float64) {
 	x1, y1, d1, _ = r.FindNearestPointWithin(x, y, math.Inf(1))
