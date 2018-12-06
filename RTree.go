@@ -2,8 +2,10 @@
 // (measured in an i7 with 16Gb of RAM). It is GC friendly, queries require 0 allocations.
 // Building the index requires exactly 8 allocations and approximately 40 bytes per coordinate.
 // That is, an index for 1 million points requires approximately 40Mb of RAM.
+//
 // To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
 // It only accepts points coordinates, no bboxes, lines or ids. And it only accepts (for now) one query, closest point to a given coordinate.
+//
 // Beware, to achieve top performance one of the hot functions has been rewritten in assembly.
 // Library works in x86 but it probably won't work in other architectures. PRs are welcome to fix this deficiency.
 //
