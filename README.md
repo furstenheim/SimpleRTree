@@ -32,7 +32,7 @@ The format of the points is a single array where each two coordinates represent 
 
 
 ### Documentation
-To access the whole documentation you can access the following [link](https://godoc.org/github.com/furstenheim/SimpleRTree#SimpleRTree).
+To access the whole documentation you can access the following [link](https://godoc.org/github.com/furstenheim/SimpleRTree).
 
 ### Benchmark. CPU
 
