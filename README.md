@@ -13,9 +13,13 @@ Library works in x86 but it probably won't work in other architectures. PRs are 
 
 ![Simple Recursive Layout](./example.png?raw=true "Simple Recursive Layout")
 
+### Installation
+
+    go get github.com/furstenheim/SimpleRTree
+
 ### Basic Usage
 
-The format of the points is a single array where each too coordinates represent a point
+The format of the points is a single array where each two coordinates represent a point
 
 
     import "SimpleRTree"
@@ -27,7 +31,7 @@ The format of the points is a single array where each too coordinates represent 
     // 1.0, 1.0, 4.0
 
 
-## Documentation
+### Documentation
 To access the whole documentation you can access the following [link](https://godoc.org/github.com/furstenheim/SimpleRTree#SimpleRTree).
 
 ### Benchmark. CPU
@@ -42,7 +46,7 @@ These are the benchmarks for finding the nearest point once the index has been b
     BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	 1000000	      1210 ns/op
     BenchmarkSimpleRTree_FindNearestPoint/10000000-4         	 1000000	      1593 ns/op
 
-## Comparison with other libraries
+### Comparison with other libraries
 
 It is hard to find good comparison of RTrees. Best available can be found at [Sizmek](https://github.com/Sizmek/rtree2d) which gathers benchmarks for RTrees in Java and Scala.
  According to that benchmark query times for 10M points vary from 2.7 microseconds to over 100 microseconds, so SimpleRTree performs fairly better.
