@@ -1,10 +1,11 @@
-// Simple RTree is a blazingly fast and GC friendly RTree. It performs in 1.6 microseconds with 1 Million points for closest point queries
-// (measured in a i5-2450M CPU @ 2.50GHz with 4Gb of RAM). It is GC friendly, queries require 0 allocations.
-// Building the index requires exactly 8 allocations.
-//
+// Simple RTree is a blazingly fast and GC friendly RTree. It handles 1 Million points in 1.2 microseconds for nearest point search
+// (measured in an i7 with 16Gb of RAM). It is GC friendly, queries require 0 allocations.
+// Building the index requires exactly 8 allocations and approximately 40 bytes per coordinate.
+// That is, an index for 1 million points requires approximately 40Mb of RAM.
+
 // To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
-// It only accepts points, no bboxes or lines. And it only accepts (for now) one query, closest point to a given coordinate.
-//
+// It only accepts points coordinates, no bboxes, lines or ids. And it only accepts (for now) one query, closest point to a given coordinate.
+
 // Beware, to achieve top performance one of the hot functions has been rewritten in assembly.
 // Library works in x86 but it probably won't work in other architectures. PRs are welcome to fix this deficiency.
 //
@@ -23,26 +24,27 @@
 // Index is built using STR (sort tile recursive) method https://en.wikipedia.org/wiki/R*_tree . Points are sorted into buckets using
 // Floyd-Rivest algorithm https://en.wikipedia.org/wiki/Floyd%E2%80%93Rivest_algorithm.
 // During query time, nodes are traversed using a linear priority queue, so that most probable candidates are visited first.
-// Possible distances from the given point to the Bbox of the node is computed in Assembly for maximum speed
+// Possible distances from the given point to the BBox of the node is computed in Assembly for maximum speed.
 //
 //
 // Benchmarks
 //
 // These are benchmarks for finding closest point. A uniform distribution of points has been used. If the point distribution is skewed times will vary.
 // Nevertheless, STRTrees are known to behave well against skewed geometric information. The number represents the number of points.
-//   BenchmarkSimpleRTree_FindNearestPoint/10-4      	10000000	       173 ns/op
-//   BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 3000000	       635 ns/op
-//   BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 2000000	       863 ns/op
-//   BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 1000000	      1127 ns/op
-//   BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 1000000	      1357 ns/op
-//   BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	 1000000	      1593 ns/op
-//   BenchmarkSimpleRTree_FindNearestPoint/10000000-4         	 1000000	      1992 ns/op
+//
+//    BenchmarkSimpleRTree_FindNearestPoint/10-4      	10000000	       124 ns/op
+//    BenchmarkSimpleRTree_FindNearestPoint/1000-4    	 3000000	       465 ns/op
+//    BenchmarkSimpleRTree_FindNearestPoint/10000-4   	 2000000	       670 ns/op
+//    BenchmarkSimpleRTree_FindNearestPoint/100000-4  	 2000000	       871 ns/op
+//    BenchmarkSimpleRTree_FindNearestPoint/200000-4  	 2000000	       961 ns/op
+//    BenchmarkSimpleRTree_FindNearestPoint/1000000-4 	 1000000	      1210 ns/op
+//    BenchmarkSimpleRTree_FindNearestPoint/10000000-4         	 1000000	      1593 ns/op
 //
 // Comparison with other RTrees
 //
 // It is hard to find a good comparison of RTrees, best available can be found at https://github.com/Sizmek/rtree2d which gathers benchmarks for
 // RTrees in Java and Scala. According to that benchmark query times for 10M points vary from 2.7 microseconds to over 100 microseconds,
-// so SimpleRTree performs fairly better
+// so SimpleRTree performs fairly better. Times are even comparable with boost, R*-tree layout performs in 1.2 microseconds for 1 Million points https://www.boost.org/doc/libs/1_64_0/libs/geometry/doc/html/geometry/spatial_indexes/introduction.html
 package SimpleRTree
 
 import (
