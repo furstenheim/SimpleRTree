@@ -3,7 +3,7 @@
 Simple RTree is a blazingly fast and GC friendly RTree. It handles 1 Million points in 1.2 microseconds for nearest point search
 (measured in an i7 with 16Gb of RAM). It is GC friendly, queries require 0 allocations.
 Building the index requires exactly 8 allocations and approximately 40 bytes per coordinate.
-That is, an index for 1 million points requires approximately 40Mb of RAM.
+That is, an index for 1 million points requires approximately 40Mb in the heap.
 
 To achieve this speed, the index has three restrictions. It is static, once built it cannot be changed.
 It only accepts points coordinates, no bboxes, lines or ids. And it only accepts (for now) one query, closest point to a given coordinate.
