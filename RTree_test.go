@@ -79,15 +79,23 @@ func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 		points[i] = rand.Float64()
 	}
 	fp := FlatPoints(points)
+	fp2 := FlatPoints(append(make([]float64, 0, len(points)), points...))
 	r := New().Load(fp)
+	r2 := NewWithOptions(
+		Options{
+			TreeType: HILBERT,
+		},
+	).Load(fp2)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
 		x1, y1, _ := r.FindNearestPoint(x, y)
 		x2, y2, _ := fp.linearClosestPoint(x, y)
+		x3, y3, _ := r2.FindNearestPoint(x, y)
 		assert.Equal(t, x1, x2)
 		assert.Equal(t, y1, y2)
+		assert.Equal(t, x1, x3)
+		assert.Equal(t, y1, y3)
 	}
-
 }
 
 func TestSimpleRTree_FindNearestPointWithinOutOfBBox(t *testing.T) {
@@ -131,15 +139,24 @@ func TestSimpleRTree_FindNearestPointBig(t *testing.T) {
 	r3 := NewWithOptions(Options{
 		RTreePool: rtreePool,
 	}).Load(fp)
+	fp2 := FlatPoints(append(make([]float64, 0, len(points)), points...))
+	rH := NewWithOptions(
+		Options{
+			TreeType: HILBERT,
+		},
+	).Load(fp2)
 	for i := 0; i < 1000; i++ {
 		x, y := rand.Float64(), rand.Float64()
 		x1, y1, _ := r.FindNearestPoint(x, y)
 		x3, y3, _ := r3.FindNearestPoint(x, y)
+		x4, y4, _ := rH.FindNearestPoint(x, y)
 		x2, y2, _ := fp.linearClosestPoint(x, y)
 		assert.Equal(t, x1, x2, "X coordinate")
 		assert.Equal(t, y1, y2, "Y coordinate")
 		assert.Equal(t, x3, x2, "X coordinate pooled")
 		assert.Equal(t, y3, y2, "Y coordinate pooled")
+		assert.Equal(t, x4, x2)
+		assert.Equal(t, y4, y2)
 	}
 
 }
@@ -303,6 +320,40 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 			}
 			fp := FlatPoints(points)
 			r := NewWithOptions(Options{UnsafeConcurrencyMode: true}).Load(fp)
+			b.ResetTimer()
+			for n := 0; n < b.N; n++ {
+				x, y := rand.Float64(), rand.Float64()
+				_, _, _ = r.FindNearestPoint(x, y)
+			}
+		})
+	}
+}
+
+func BenchmarkSimpleRTree_FindNearestPointHilbert(b *testing.B) {
+	benchmarks := []struct {
+		name string
+		size int
+	}{
+		{"10", 10},
+		{"1000", 1000},
+		{"10000", 10000},
+		{"100000", 100000},
+		{"200000", 200000},
+		{"1000000", 1000000},
+		{"10000000", 10000000},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			size := bm.size
+			points := make([]float64, size*2)
+			for i := 0; i < 2*size; i++ {
+				points[i] = rand.Float64()
+			}
+			fp := FlatPoints(points)
+			r := NewWithOptions(Options{
+				TreeType: HILBERT,
+				UnsafeConcurrencyMode: true,
+			}).Load(fp)
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
 				x, y := rand.Float64(), rand.Float64()

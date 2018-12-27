@@ -56,6 +56,7 @@ import (
 	"text/template"
 	"unsafe"
 	"sync"
+	"sort"
 )
 
 const MAX_POSSIBLE_SIZE = 9
@@ -80,10 +81,19 @@ type SimpleRTree struct {
 // will return wrong results if the elements are modified
 type FlatPoints []float64
 
+type TreeType uint8
+
+const (
+	STR = iota
+	HILBERT
+)
+
+
 // SimpleRTree can be slightly tuned
 type Options struct {
 	UnsafeConcurrencyMode bool // Set this parameter to true if you only intend to access the R tree from one go routine. FindNearestPoint will be faster and it will make no allocations
 	MAX_ENTRIES int
+	TreeType TreeType
 	RTreePool *sync.Pool // If a lot of RTrees are being created you can provide a pool to the tree. On destroy the underlying memory space will be saved back to the pool, so next tree can use it
 }
 
@@ -168,9 +178,12 @@ func (r *SimpleRTree) Load(points FlatPoints) *SimpleRTree {
 	return r.load(points, false)
 }
 
-// LoadSortedArray accepts a sorted flat array of coordinates and builds the RTree
+// LoadSortedArray accepts a sorted flat array of coordinates and builds the RTree.
+// If the tree is STR (the default)
 // points must have been sorted lexicographically. That is
 // (x1, y1) < (x2, y2) if x1 < x2 or x1 === x2 and y1 < y2
+//
+// In case the tree is a hilbert tree (created with NewWithOptions) then points are assumed to be sorted wrt to the geohash
 //
 // Note: rtree is assumed to have sole access to the array, it will modify the underlying order and it
 // will return wrong results if the elements are modified
@@ -318,8 +331,13 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	} else {
 		r.nodes = make([]rNode, 0, computeSize(points.Len()))
 	}
+	var rootNodeConstruct nodeConstruct
+	if r.options.TreeType == STR {
+		rootNodeConstruct = r.buildSTR(points, isSorted)
+	} else {
+		rootNodeConstruct = r.buildHilbert(points, isSorted)
+	}
 
-	rootNodeConstruct := r.build(points, isSorted)
 	if isPooledMemReceived && r.options.UnsafeConcurrencyMode && cap(rtreePooledMem.sq) >= rootNodeConstruct.height*r.options.MAX_ENTRIES {
 		r.unsafeQueue = rtreePooledMem.sq
 	} else {
@@ -338,7 +356,95 @@ func (r *SimpleRTree) load(points FlatPoints, isSorted bool) *SimpleRTree {
 	return r
 }
 
-func (r *SimpleRTree) build(points FlatPoints, isSorted bool) nodeConstruct {
+func (r *SimpleRTree) buildHilbert(points FlatPoints, isSorted bool) nodeConstruct {
+	r.nodes = append(r.nodes, rNode{})
+	if (!isSorted) {
+		r.sortHilbert(points)
+	}
+
+	nBuckets := points.Len() / r.options.MAX_ENTRIES
+	if (points.Len() % r.options.MAX_ENTRIES > 0) {
+		nBuckets++
+	}
+	previousStart := 0
+	nextStart := len(r.nodes)
+	height := 2
+	for i:= 0; i < nBuckets ; i++ {
+		start := previousStart + i * r.options.MAX_ENTRIES
+		end := minInt(start + r.options.MAX_ENTRIES, points.Len())
+		x0, y0 := r.points.GetPointAt(start)
+		vb := rVectorBBox{x0, y0, x0, y0}
+
+		for i := end - start - 1; i > 0; i-- {
+			x1, y1 := r.points.GetPointAt(start + i)
+			vb1 := [4]float64{
+				x1,
+				y1,
+				x1,
+				y1,
+			}
+			vb = vectorBBoxExtend(vb, vb1)
+		}
+		r.nodes = append(r.nodes, rNode{
+			nodeType: preleaf_node,
+			BBox: vb,
+			nChildren: int8(end - start),
+			firstChildOffset: uint32(start) * uint32(flat_point_size),
+		})
+	}
+	for nBuckets > r.options.MAX_ENTRIES {
+		height++
+		previousNBuckets := nBuckets
+		previousStart = nextStart
+		nextStart = len(r.nodes)
+		nBuckets = previousNBuckets / r.options.MAX_ENTRIES
+		if (previousNBuckets % r.options.MAX_ENTRIES > 0) {
+			nBuckets++
+		}
+		for i:= 0; i < nBuckets ; i++ {
+			start := previousStart + i * r.options.MAX_ENTRIES
+			end := minInt(start + r.options.MAX_ENTRIES, len(r.nodes))
+			vb := r.nodes[start].BBox
+
+			for i := end - start - 1; i > 0; i-- {
+				vb1 := r.nodes[start + i].BBox
+				vb = vectorBBoxExtend(vb, vb1)
+			}
+			r.nodes = append(r.nodes, rNode{
+				nodeType: default_node,
+				BBox: vb,
+				nChildren: int8(end - start),
+				firstChildOffset: uint32(start) * uint32(node_size),
+			})
+		}
+	}
+	previousStart = nextStart
+	r.nodes[0] = rNode{
+		nodeType: default_node,
+		// no need for bbox
+		firstChildOffset: uint32(previousStart)  * uint32(node_size),
+		nChildren: int8(nBuckets),
+	}
+
+	return nodeConstruct{
+		height: height,
+	}
+}
+
+func (r *SimpleRTree) sortHilbert(points FlatPoints) {
+	hashes := make([]uint64, points.Len())
+	for i:= 0; i < points.Len(); i++ {
+		hash := GeoHash(points.GetPointAt(i))
+		hashes[i] = hash
+	}
+	sorter := GeoHashSorter{
+		points: points,
+		hashes: hashes,
+	}
+	sort.Sort(sorter)
+}
+
+func (r *SimpleRTree) buildSTR(points FlatPoints, isSorted bool) nodeConstruct {
 	r.nodes = append(r.nodes, rNode{})
 	rootNodeConstruct := nodeConstruct{
 		height: int(math.Ceil(math.Log(float64(points.Len())) / math.Log(float64(r.options.MAX_ENTRIES)))),
