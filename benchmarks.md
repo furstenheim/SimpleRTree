@@ -27,6 +27,15 @@ These are the benchmarks for the initial load
     BenchmarkSimpleRTree_LoadPooled/200000-4     	      50	  34608146 ns/op	     275 B/op	       2 allocs/op
 
 
+## Benchmark Hilbert tree
+    BenchmarkSimpleRTree_FindNearestPointHilbert/10-4         	10000000	       179 ns/op
+    BenchmarkSimpleRTree_FindNearestPointHilbert/1000-4       	  500000	      2603 ns/op
+    BenchmarkSimpleRTree_FindNearestPointHilbert/10000-4      	  500000	      3685 ns/op
+    BenchmarkSimpleRTree_FindNearestPointHilbert/100000-4     	  200000	      6138 ns/op
+    BenchmarkSimpleRTree_FindNearestPointHilbert/200000-4     	  200000	      6819 ns/op
+    BenchmarkSimpleRTree_FindNearestPointHilbert/1000000-4    	  200000	      6654 ns/op
+    BenchmarkSimpleRTree_FindNearestPointHilbert/10000000-4   	  200000	     11072 ns/op
+
 ## Benchmark Compute distances
 
     Benchmark_ComputeDistances-4         	100000000	        20.2 ns/op
