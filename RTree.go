@@ -212,6 +212,7 @@ func (r *SimpleRTree) FindNearestPoint(x, y float64) (x1, y1, d1 float64) {
 // (x1 - x) * (x1 - x) + (y1 - y) * (y1 - y) < 4
 func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1 float64, found bool) {
 	var minItem searchQueueItem
+	itemBuff := make([]byte, rSEARCH_QUEUE_ITEM_SIZE_INT)
 	distanceLowerBound := math.Inf(1)
 	// if bbox is further from this bound then we don't explore it
 	distanceUpperBound := dsquared
@@ -226,12 +227,13 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 	rootNode := &r.nodes[0]
 	unsafeRootLeafNode := uintptr(unsafe.Pointer(&r.points[0]))
 	unsafeRootNode := uintptr(unsafe.Pointer(rootNode))
-	sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(rootNode)), distance: 0}) // we don't need distance for first node
+	sq = append(sq, itemBuff...)
+	sq.setItem(0, searchQueueItem{node: uintptr(unsafe.Pointer(rootNode)), distance: 0}) // we don't need distance for first node
 
 	for sq.Len() > 0 {
 		sq.PreparePop()
-		item := sq[sq.Len() - 1]
-		sq = sq[0: sq.Len() - 1]
+		item := sq.itemAt(sq.Len() - rSEARCH_QUEUE_ITEM_SIZE_INT)
+		sq = sq[0: sq.Len() - rSEARCH_QUEUE_ITEM_SIZE_INT]
 		currentDistance := item.distance
 		if found && currentDistance > distanceLowerBound {
 			break
@@ -256,7 +258,9 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 
 				d := computeLeafDistance(px, py, x, y)
 				if d <= distanceUpperBound {
-					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
+					position := sq.Len()
+					sq = append(sq, itemBuff...)
+					sq.setItem(position, searchQueueItem{node: uintptr(unsafe.Pointer(nil)), px: px, py: py, distance: d})
 					distanceUpperBound = d
 				}
 				f = f + float_size
@@ -268,7 +272,9 @@ func (r *SimpleRTree) FindNearestPointWithin(x, y, dsquared float64) (x1, y1, d1
 				n := (*rNode)(unsafe.Pointer(f))
 				mind, maxd := vectorComputeDistances(n.BBox, x, y)
 				if mind <= distanceUpperBound {
-					sq = append(sq, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
+					position := sq.Len()
+					sq = append(sq, itemBuff...)
+					sq.setItem(position, searchQueueItem{node: uintptr(unsafe.Pointer(n)), distance: mind})
 					// Distance to one of the corners is lower than the upper bound
 					// so there must be a point at most within distanceUpperBound
 					if maxd < distanceUpperBound {
