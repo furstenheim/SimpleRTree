@@ -72,7 +72,7 @@ func TestNode_ComputeDistances(t *testing.T) {
 
 }
 
-func TestSimpleRTree_FindNearestPointSmall(t *testing.T) {
+func TestSimpleRTree_FindNearestPoint(t *testing.T) {
 	const size = 20
 	points := make([]float64, size*2)
 	for i := 0; i < 2*size; i++ {
@@ -91,10 +91,10 @@ func TestSimpleRTree_FindNearestPointSmall(t *testing.T) {
 		x1, y1, _ := r.FindNearestPoint(x, y)
 		x2, y2, _ := fp.linearClosestPoint(x, y)
 		x3, y3, _ := r2.FindNearestPoint(x, y)
-		assert.Equal(t, x2, x1)
-		assert.Equal(t, y2, y1)
-		assert.Equal(t, x2, x3)
-		assert.Equal(t, y2, y3)
+		assert.Equal(t, x1, x2)
+		assert.Equal(t, y1, y2)
+		assert.Equal(t, x1, x3)
+		assert.Equal(t, y1, y3)
 	}
 }
 
@@ -330,7 +330,6 @@ func BenchmarkSimpleRTree_FindNearestPoint(b *testing.B) {
 }
 
 func BenchmarkSimpleRTree_FindNearestPointHilbert(b *testing.B) {
-	b.Skip("")
 	benchmarks := []struct {
 		name string
 		size int
@@ -391,7 +390,6 @@ func BenchmarkSimpleRTree_FindNearestPointMemory(b *testing.B) {
 }
 
 func BenchmarkSimpleRTree_FindNearestPointHilbertMemory(b *testing.B) {
-	b.Skip("")
 	benchmarks := []struct {
 		name string
 		size int
